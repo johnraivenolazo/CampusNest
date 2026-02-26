@@ -115,6 +115,12 @@ export default function PropertyForm({ user }: PropertyFormProps) {
         }
       }
 
+      if (!formData.latitude || !formData.longitude) {
+        alert('Please select a location on the map first.')
+        setIsLoading(false)
+        return
+      }
+
       const { error } = await supabase
         .from('properties')
         .insert({
