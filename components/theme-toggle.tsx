@@ -21,19 +21,17 @@ export function ThemeToggle() {
     <button
       onClick={() => setTheme(isDark ? 'light' : 'dark')}
       aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
-      className="border-border bg-muted/50 hover:bg-muted text-muted-foreground hover:text-foreground relative flex h-8 w-8 items-center justify-center rounded-full border transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-amber-400/60 focus-visible:outline-none"
+      className="border-border bg-background hover:bg-muted text-muted-foreground hover:text-foreground relative flex h-9 w-9 items-center justify-center rounded-full border shadow-sm transition-all duration-300 focus-visible:ring-2 focus-visible:ring-amber-400/60 focus-visible:outline-none"
     >
       {/* Sun — visible in dark mode */}
       <Sun
-        className={`absolute h-4 w-4 transition-all duration-300 ${
-          isDark ? 'scale-100 rotate-0 opacity-100' : 'scale-50 -rotate-90 opacity-0'
-        }`}
+        className={`absolute h-[1.1rem] w-[1.1rem] transition-all duration-300 ${isDark ? 'scale-100 rotate-0 opacity-100 text-amber-500' : 'scale-75 -rotate-90 opacity-0'
+          }`}
       />
       {/* Moon — visible in light mode */}
       <Moon
-        className={`absolute h-4 w-4 transition-all duration-300 ${
-          isDark ? 'scale-50 rotate-90 opacity-0' : 'scale-100 rotate-0 opacity-100'
-        }`}
+        className={`absolute h-[1.1rem] w-[1.1rem] transition-all duration-300 ${isDark ? 'scale-75 rotate-90 opacity-0' : 'scale-100 rotate-0 opacity-100 text-slate-700'
+          }`}
       />
     </button>
   )

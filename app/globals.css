@@ -140,7 +140,7 @@ html::-webkit-scrollbar {
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground transition-colors duration-300;
   }
 
   /* ─── Hide all scrollbars globally ─────────────────────────────
