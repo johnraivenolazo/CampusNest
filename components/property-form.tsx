@@ -28,7 +28,7 @@ interface PropertyFormProps {
     furnished: boolean
     room_type: string
     amenities: string[]
-    rules: string[]
+    rules: string | string[]
     property_images: string[]
   }
   propertyId?: string
@@ -51,8 +51,12 @@ export default function PropertyForm({ user, initialData, propertyId }: Property
     bathrooms: initialData?.bathrooms?.toString() || '',
     furnished: initialData?.furnished || false,
     room_type: (initialData?.room_type as 'studio' | 'single' | 'double' | 'apartment') || 'single',
-    amenities: initialData?.amenities?.join(', ') || '',
-    rules: initialData?.rules?.join(', ') || '',
+    amenities: Array.isArray(initialData?.amenities)
+      ? initialData.amenities.join(', ')
+      : (typeof initialData?.amenities === 'string' ? initialData.amenities : ''),
+    rules: Array.isArray(initialData?.rules)
+      ? initialData.rules.join(', ')
+      : (typeof initialData?.rules === 'string' ? initialData.rules : ''),
   })
 
   const handleChange = (
@@ -166,7 +170,7 @@ export default function PropertyForm({ user, initialData, propertyId }: Property
         furnished: formData.furnished,
         room_type: formData.room_type,
         amenities: amenitiesList,
-        rules: rulesList,
+        rules: rulesList.join(', '),
         status: 'available' as const,
         property_images: uploadedImageUrls,
       }
