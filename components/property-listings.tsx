@@ -118,8 +118,8 @@ export default function PropertyListings({
             key={property.id}
             onClick={() => onPropertySelect(property)}
             className={`group cursor-pointer overflow-hidden rounded-2xl border transition-all duration-300 ${isSelected
-                ? 'scale-[1.01] border-amber-400 bg-amber-50/40 shadow-[0_0_0_2px_rgba(251,191,36,0.25)] dark:border-amber-500 dark:bg-amber-950/10'
-                : 'border-border bg-card hover:border-muted-foreground/30 hover:-translate-y-0.5 hover:shadow-lg'
+              ? 'scale-[1.01] border-amber-400 bg-amber-50/40 shadow-[0_0_0_2px_rgba(251,191,36,0.25)] dark:border-amber-500 dark:bg-amber-950/10'
+              : 'border-border bg-card hover:border-muted-foreground/30 hover:-translate-y-0.5 hover:shadow-lg'
               }`}
           >
             {/* Thumbnail */}
@@ -207,8 +207,8 @@ export default function PropertyListings({
                   className="h-7 gap-1 bg-amber-500 px-3 text-xs font-semibold text-white shadow-sm hover:bg-amber-600"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <Link href={`/ properties / ${property.id} `}>
-                    View <ArrowRight className="h-3 w-3" />
+                  <Link href={`/properties/${property.id}`}>
+                    View
                   </Link>
                 </Button>
               </div>
