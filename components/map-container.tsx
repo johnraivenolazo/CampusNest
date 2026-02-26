@@ -39,7 +39,7 @@ export default function MapContainer({
 }: MapContainerProps) {
   return (
     <div className="relative flex h-full w-full flex-col">
-      <div className="bg-background/80 border-border pointer-events-none absolute top-4 left-1/2 z-10 flex -translate-x-1/2 items-center gap-1.5 rounded-full border px-3.5 py-1.5 shadow-md backdrop-blur-sm">
+      <div className="bg-background/80 border-border pointer-events-none absolute top-4 left-1/2 z-10 hidden -translate-x-1/2 items-center gap-1.5 rounded-full border px-3.5 py-1.5 shadow-md backdrop-blur-sm md:flex">
         <span className="text-sm">📍</span>
         <p className="text-muted-foreground text-xs font-medium whitespace-nowrap">
           Click a pin to view listing details
@@ -65,13 +65,12 @@ export default function MapContainer({
               <p className="text-muted-foreground mt-1 text-sm">{selectedProperty.address}</p>
             </div>
             <div
-              className={`rounded px-2 py-1 text-xs font-bold uppercase ${
-                selectedProperty.status === 'available'
+              className={`rounded px-2 py-1 text-xs font-bold uppercase ${selectedProperty.status === 'available'
                   ? 'bg-green-100 text-green-700'
                   : selectedProperty.status === 'reserved'
                     ? 'bg-orange-100 text-orange-700'
                     : 'bg-red-100 text-red-700'
-              }`}
+                }`}
             >
               {selectedProperty.status}
             </div>
