@@ -16,26 +16,43 @@ import { X, UploadCloud } from 'lucide-react'
 
 interface PropertyFormProps {
   user: User
+  initialData?: {
+    title: string
+    description: string
+    price_per_month: number
+    address: string
+    latitude: number
+    longitude: number
+    bedrooms: number
+    bathrooms: number
+    furnished: boolean
+    room_type: string
+    amenities: string[]
+    rules: string[]
+    property_images: string[]
+  }
+  propertyId?: string
 }
 
-export default function PropertyForm({ user }: PropertyFormProps) {
+export default function PropertyForm({ user, initialData, propertyId }: PropertyFormProps) {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
   const [selectedImages, setSelectedImages] = useState<File[]>([])
-  const [imagePreviews, setImagePreviews] = useState<string[]>([])
+  const [imagePreviews, setImagePreviews] = useState<string[]>(initialData?.property_images || [])
+  const [existingImages, setExistingImages] = useState<string[]>(initialData?.property_images || [])
   const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    price: '',
-    location: '',
-    latitude: '',
-    longitude: '',
-    bedrooms: '',
-    bathrooms: '',
-    furnished: false,
-    room_type: 'single',
-    amenities: '',
-    rules: '',
+    title: initialData?.title || '',
+    description: initialData?.description || '',
+    price: initialData?.price_per_month?.toString() || '',
+    location: initialData?.address || '',
+    latitude: initialData?.latitude?.toString() || '',
+    longitude: initialData?.longitude?.toString() || '',
+    bedrooms: initialData?.bedrooms?.toString() || '',
+    bathrooms: initialData?.bathrooms?.toString() || '',
+    furnished: initialData?.furnished || false,
+    room_type: (initialData?.room_type as 'studio' | 'single' | 'double' | 'apartment') || 'single',
+    amenities: initialData?.amenities?.join(', ') || '',
+    rules: initialData?.rules?.join(', ') || '',
   })
 
   const handleChange = (
@@ -66,10 +83,25 @@ export default function PropertyForm({ user }: PropertyFormProps) {
   }
 
   const removeImage = (index: number) => {
-    setSelectedImages((prev) => prev.filter((_, i) => i !== index))
+    // If it's an existing image (string URL), remove from existingImages
+    const preview = imagePreviews[index]
+    if (typeof preview === 'string' && preview.startsWith('http')) {
+      setExistingImages((prev) => prev.filter((url) => url !== preview))
+    } else {
+      // If it's a new file, find its index in selectedImages and remove it
+      // This is a bit tricky since selectedImages and newly added imagePreviews are synced
+      // We need to calculate the index relative to the start of new images
+      const newImagesStartIndex = existingImages.length
+      if (index >= newImagesStartIndex) {
+        const selectedIndex = index - newImagesStartIndex
+        setSelectedImages((prev) => prev.filter((_, i) => i !== selectedIndex))
+      }
+    }
 
-    // Revoke object URL to prevent memory leaks
-    URL.revokeObjectURL(imagePreviews[index])
+    // Revoke object URL to prevent memory leaks if it's a blob
+    if (preview.startsWith('blob:')) {
+      URL.revokeObjectURL(preview)
+    }
     setImagePreviews((prev) => prev.filter((_, i) => i !== index))
   }
 
@@ -90,7 +122,7 @@ export default function PropertyForm({ user }: PropertyFormProps) {
         .filter((r) => r)
 
       // Upload images to Supabase Storage one by one
-      const imageUrls: string[] = []
+      const uploadedImageUrls: string[] = [...existingImages]
       if (selectedImages.length > 0) {
         for (const file of selectedImages) {
           const fileExt = file.name.split('.').pop()
@@ -111,7 +143,7 @@ export default function PropertyForm({ user }: PropertyFormProps) {
             .from('property-images')
             .getPublicUrl(filePath)
 
-          imageUrls.push(publicUrlData.publicUrl)
+          uploadedImageUrls.push(publicUrlData.publicUrl)
         }
       }
 
@@ -121,26 +153,37 @@ export default function PropertyForm({ user }: PropertyFormProps) {
         return
       }
 
-      const { error } = await supabase
-        .from('properties')
-        .insert({
-          landlord_id: user.id,
-          title: formData.title,
-          description: formData.description,
-          price_per_month: parseInt(formData.price),
-          address: formData.location,
-          latitude: parseFloat(formData.latitude),
-          longitude: parseFloat(formData.longitude),
-          bedrooms: parseInt(formData.bedrooms),
-          bathrooms: parseInt(formData.bathrooms),
-          furnished: formData.furnished,
-          room_type: formData.room_type,
-          amenities: amenitiesList,
-          rules: rulesList,
-          status: 'available',
-          property_images: imageUrls,
-        })
-        .select()
+      const propertyData = {
+        landlord_id: user.id,
+        title: formData.title,
+        description: formData.description,
+        price_per_month: parseInt(formData.price),
+        address: formData.location,
+        latitude: parseFloat(formData.latitude),
+        longitude: parseFloat(formData.longitude),
+        bedrooms: parseInt(formData.bedrooms),
+        bathrooms: parseInt(formData.bathrooms),
+        furnished: formData.furnished,
+        room_type: formData.room_type,
+        amenities: amenitiesList,
+        rules: rulesList,
+        status: 'available' as const,
+        property_images: uploadedImageUrls,
+      }
+
+      let error
+      if (propertyId) {
+        const { error: updateError } = await supabase
+          .from('properties')
+          .update(propertyData)
+          .eq('id', propertyId)
+        error = updateError
+      } else {
+        const { error: insertError } = await supabase
+          .from('properties')
+          .insert(propertyData)
+        error = insertError
+      }
 
       if (error) {
         console.error('Supabase Error:', error)
@@ -386,7 +429,7 @@ export default function PropertyForm({ user }: PropertyFormProps) {
             <a href="/landlord/dashboard">Cancel</a>
           </Button>
           <Button type="submit" disabled={isLoading}>
-            {isLoading ? 'Creating...' : 'Create Listing'}
+            {isLoading ? (propertyId ? 'Saving...' : 'Creating...') : (propertyId ? 'Save Changes' : 'Create Listing')}
           </Button>
         </div>
       </div>
