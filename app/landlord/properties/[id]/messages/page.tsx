@@ -15,7 +15,7 @@ export default async function PropertyMessagesPage({
   } = await supabase.auth.getUser()
 
   if (!user || user.user_metadata?.user_type !== 'landlord') {
-    redirect('/auth/login')
+    redirect('/')
   }
 
   // Get property

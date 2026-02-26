@@ -15,7 +15,7 @@ export default async function EditPropertyPage({ params }: { params: Promise<{ i
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
-        redirect('/auth/login')
+        redirect('/')
     }
 
     // Fetch property data

@@ -38,7 +38,7 @@ export default async function AuthErrorPage({
               asChild
               className="w-full bg-amber-500 font-semibold text-white hover:bg-amber-600"
             >
-              <Link href="/auth/login">Try logging in again</Link>
+              <Link href="/">Try logging in again</Link>
             </Button>
             <Button asChild variant="outline" className="w-full">
               <Link href="/">Back to listings</Link>

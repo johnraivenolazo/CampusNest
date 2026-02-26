@@ -219,7 +219,7 @@ export default function PropertyDetails({ property, user }: PropertyDetailsProps
                     <p className="text-muted-foreground text-center text-xs">
                       Already have an account?{' '}
                       <Link
-                        href="/auth/login"
+                        href="/"
                         className="font-medium text-amber-500 underline-offset-4 hover:text-amber-600 hover:underline"
                       >
                         Log in

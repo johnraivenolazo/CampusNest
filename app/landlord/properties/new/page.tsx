@@ -10,7 +10,7 @@ export default async function NewPropertyPage() {
   } = await supabase.auth.getUser()
 
   if (!user || user.user_metadata?.user_type !== 'landlord') {
-    redirect('/auth/login')
+    redirect('/')
   }
 
   return (

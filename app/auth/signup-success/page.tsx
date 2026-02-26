@@ -30,7 +30,7 @@ export default function SignupSuccessPage() {
             asChild
             className="w-full bg-amber-500 font-semibold text-white hover:bg-amber-600"
           >
-            <Link href="/auth/login">Go to Login</Link>
+            <Link href="/">Back to Home</Link>
           </Button>
         </div>
 
