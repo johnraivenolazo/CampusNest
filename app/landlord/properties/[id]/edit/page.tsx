@@ -2,12 +2,6 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import PropertyForm from '@/components/property-form'
 
-interface EditPropertyPageProps {
-    params: {
-        id: string
-    }
-}
-
 export default async function EditPropertyPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params
     const supabase = await createClient()

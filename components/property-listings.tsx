@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import Image from 'next/image'
 import { motion } from 'framer-motion'
-import { MapPin, ArrowRight, Home, Wifi, Car, ShieldCheck, Zap, Droplets, Wind } from 'lucide-react'
+import { MapPin, Home, Wifi, Car, ShieldCheck, Zap, Droplets, Wind } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils.currency'
 
 interface Property {
