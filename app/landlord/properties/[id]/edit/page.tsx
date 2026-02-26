@@ -8,9 +8,9 @@ interface EditPropertyPageProps {
     }
 }
 
-export default async function EditPropertyPage({ params }: EditPropertyPageProps) {
+export default async function EditPropertyPage({ params }: { params: Promise<{ id: string }> }) {
+    const { id } = await params
     const supabase = await createClient()
-    const { id } = params
 
     const { data: { user } } = await supabase.auth.getUser()
 
