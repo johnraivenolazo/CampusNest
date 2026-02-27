@@ -33,8 +33,10 @@ CREATE TABLE IF NOT EXISTS public.properties (
   latitude DECIMAL(10, 8) NOT NULL,
   longitude DECIMAL(11, 8) NOT NULL,
   price_per_month DECIMAL(10, 2) NOT NULL,
+  rooms INT NOT NULL DEFAULT 1,
   bedrooms INT NOT NULL,
   bathrooms INT NOT NULL,
+  furnished BOOLEAN DEFAULT FALSE,
   amenities TEXT[], -- Store as array of strings
   rules TEXT,
   property_images TEXT[], -- URLs of images
@@ -215,6 +217,16 @@ CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW
   EXECUTE FUNCTION public.handle_new_user();
+
+-- 9. PROFILE SYNC (Run this to restore profiles for existing users after a reset)
+INSERT INTO public.profiles (id, email, full_name, user_type)
+SELECT 
+  id, 
+  email, 
+  raw_user_meta_data ->> 'full_name', 
+  COALESCE(raw_user_meta_data ->> 'user_type', 'student')
+FROM auth.users
+ON CONFLICT (id) DO NOTHING;
 
 -- 8. Storage Bucket Setup
 INSERT INTO storage.buckets (id, name, public)
