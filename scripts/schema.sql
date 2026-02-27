@@ -100,6 +100,7 @@ CREATE TABLE IF NOT EXISTS public.messages (
   receiver_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
   property_id UUID REFERENCES public.properties(id) ON DELETE SET NULL,
   content TEXT NOT NULL,
+  phone_number TEXT,
   read BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -221,7 +222,14 @@ VALUES ('property-images', 'property-images', true)
 ON CONFLICT (id) DO NOTHING;
 
 -- Storage Policies
+DROP POLICY IF EXISTS "Public Access" ON storage.objects;
 CREATE POLICY "Public Access" ON storage.objects FOR SELECT TO public USING ( bucket_id = 'property-images' );
+
+DROP POLICY IF EXISTS "Authenticated users can upload images" ON storage.objects;
 CREATE POLICY "Authenticated users can upload images" ON storage.objects FOR INSERT TO authenticated WITH CHECK ( bucket_id = 'property-images' );
+
+DROP POLICY IF EXISTS "Users can update their own images" ON storage.objects;
 CREATE POLICY "Users can update their own images" ON storage.objects FOR UPDATE TO authenticated USING ( bucket_id = 'property-images' and auth.uid() = owner );
+
+DROP POLICY IF EXISTS "Users can delete their own images" ON storage.objects;
 CREATE POLICY "Users can delete their own images" ON storage.objects FOR DELETE TO authenticated USING ( bucket_id = 'property-images' and auth.uid() = owner );
