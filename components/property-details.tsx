@@ -200,7 +200,7 @@ export default function PropertyDetails({ property, user }: PropertyDetailsProps
             {property.rules && (
               <Card>
                 <CardHeader>
-                  <CardTitle>House Rules</CardTitle>
+                  <CardTitle className="text-lg font-bold">Home Rules</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <ul className="space-y-2">
@@ -243,7 +243,7 @@ export default function PropertyDetails({ property, user }: PropertyDetailsProps
                       onClick={() => setShowMessage(true)}
                     >
                       <MessageCircle className="mr-2 h-4 w-4" />
-                      {property.status === 'available' ? 'Message Landlord' : 'Not Available'}
+                      {property.status === 'available' ? 'Send a Message' : 'Not Available'}
                     </Button>
                     <Button variant="outline" className="w-full">
                       <Bookmark className="mr-2 h-4 w-4" />

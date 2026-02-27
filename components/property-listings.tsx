@@ -74,9 +74,11 @@ function EmptyState() {
       <div className="to-muted border-border/50 mb-4 flex h-16 w-16 items-center justify-center rounded-2xl border bg-linear-to-br from-amber-50 shadow-inner">
         <Home className="h-7 w-7 text-amber-400" />
       </div>
-      <p className="text-foreground font-bold">No listings found</p>
-      <p className="text-muted-foreground mt-1 max-w-[180px] text-sm">
-        Try widening your search area or adjusting the price range
+      <p className="text-foreground text-lg font-bold tracking-tight">
+        The perfect nest is worth the wait
+      </p>
+      <p className="text-muted-foreground mt-2 max-w-[220px] text-sm leading-relaxed">
+        We couldn&apos;t find a match, but keep exploring — your sanctuary is out there.
       </p>
     </div>
   )

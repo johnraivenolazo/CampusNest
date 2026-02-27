@@ -192,7 +192,7 @@ export default function MapSearch({ user }: { user: User | null }) {
               <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 h-3.5 w-3.5 -translate-y-1/2" />
               <Input
                 id="campus"
-                placeholder="Campus, university, area…"
+                placeholder="Search by university or area..."
                 value={campusLocation}
                 onChange={(e) => setCampusLocation(e.target.value)}
                 className="bg-muted/40 border-border/60 h-9 pr-10 pl-9 text-sm focus-visible:ring-amber-400/50"

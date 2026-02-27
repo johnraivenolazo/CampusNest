@@ -8,18 +8,18 @@ const _geist = Geist({ subsets: ['latin'] })
 const _geistMono = Geist_Mono({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'CampusNest - Find Student Housing Near Your Campus',
+  title: 'CampusNest - Find student housing near your campus',
   description:
-    'Discover verified, affordable housing near your campus. Interactive map, real-time availability, and direct landlord communication.',
-  keywords: 'student housing, rental, campus, university, affordable housing',
+    'Search for verified student housing, dorms, and rooms near your campus with real-time availability and direct landlord messaging.',
+  keywords: 'student housing, dorms, rooms for rent, campus living, verified rentals',
   icons: {
     icon: '/logo.png',
     apple: '/logo.png',
     shortcut: '/logo.png',
   },
   openGraph: {
-    title: 'CampusNest - Find Student Housing',
-    description: 'Discover verified, affordable housing near your campus',
+    title: 'CampusNest - Campus Living',
+    description: 'Find verified student housing near your campus',
     type: 'website',
     images: [{ url: '/logo.png', width: 800, height: 800, alt: 'CampusNest Logo' }],
   },
