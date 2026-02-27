@@ -99,7 +99,7 @@ export default function MapSearch({ user }: { user: User | null }) {
         setInitialLng((prev) => (prev === 0 ? pos.coords.longitude : prev))
         setUsingGeolocation(true)
       },
-      () => {},
+      () => { },
       { timeout: 8000, maximumAge: 60000 }
     )
   }, [])
@@ -128,6 +128,21 @@ export default function MapSearch({ user }: { user: User | null }) {
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleLocateMe = () => {
+    if (!navigator.geolocation) return
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setInitialLat(pos.coords.latitude)
+        setInitialLng(pos.coords.longitude)
+        setUsingGeolocation(true)
+      },
+      (err) => {
+        console.error('Geolocation error:', err)
+      },
+      { timeout: 8000, maximumAge: 60000 }
+    )
   }
 
   const applyFilters = () => {
@@ -165,9 +180,8 @@ export default function MapSearch({ user }: { user: User | null }) {
     <div className="relative flex h-[calc(100vh-65px)] overflow-hidden">
       {/* ─── Left Sidebar (List) ─── */}
       <div
-        className={`border-border bg-background flex w-full shrink-0 flex-col overflow-hidden border-r md:flex md:w-[360px] ${
-          viewMode === 'list' ? 'flex' : 'hidden'
-        }`}
+        className={`border-border bg-background flex w-full shrink-0 flex-col overflow-hidden border-r md:flex md:w-[360px] ${viewMode === 'list' ? 'flex' : 'hidden'
+          }`}
       >
         {/* ── Search bar row ── */}
         <div className="border-border/60 space-y-3 border-b px-4 pt-4 pb-3">
@@ -177,12 +191,6 @@ export default function MapSearch({ user }: { user: User | null }) {
               <h2 className="text-foreground text-base font-bold">Find Housing</h2>
               <p className="text-muted-foreground text-xs">Near your campus</p>
             </div>
-            {usingGeolocation && (
-              <div className="flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-1 text-[10px] font-medium text-amber-600 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-400">
-                <Navigation className="h-2.5 w-2.5" />
-                Your location
-              </div>
-            )}
           </div>
 
           {/* Search + Filter in one row */}
@@ -194,19 +202,29 @@ export default function MapSearch({ user }: { user: User | null }) {
                 placeholder="Campus, university, area…"
                 value={campusLocation}
                 onChange={(e) => setCampusLocation(e.target.value)}
-                className="bg-muted/40 border-border/60 h-9 pr-3 pl-9 text-sm focus-visible:ring-amber-400/50"
+                className="bg-muted/40 border-border/60 h-9 pr-10 pl-9 text-sm focus-visible:ring-amber-400/50"
               />
+              <button
+                type="button"
+                onClick={handleLocateMe}
+                title="Locate me"
+                className={`absolute top-1/2 right-1.5 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-md transition-all ${usingGeolocation
+                  ? 'bg-amber-500/10 text-amber-500 hover:bg-amber-500/20'
+                  : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                  }`}
+              >
+                <Navigation className="h-3.5 w-3.5" />
+              </button>
             </div>
 
             {/* Filter icon button */}
             <button
               onClick={filterOpen ? () => setFilterOpen(false) : openFilter}
               title="Toggle filters"
-              className={`relative flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border transition-all duration-200 ${
-                filterOpen || activeFilterCount > 0
-                  ? 'border-amber-500 bg-amber-500 text-white shadow-sm'
-                  : 'bg-muted/40 text-muted-foreground border-border/60 hover:border-muted-foreground/40 hover:text-foreground'
-              }`}
+              className={`relative flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border transition-all duration-200 ${filterOpen || activeFilterCount > 0
+                ? 'border-amber-500 bg-amber-500 text-white shadow-sm'
+                : 'bg-muted/40 text-muted-foreground border-border/60 hover:border-muted-foreground/40 hover:text-foreground'
+                }`}
             >
               <SlidersHorizontal className="h-4 w-4" />
               {activeFilterCount > 0 && (
@@ -231,9 +249,8 @@ export default function MapSearch({ user }: { user: User | null }) {
 
         {/* ── Filter panel (slide-down) ── */}
         <div
-          className={`border-border/60 overflow-hidden border-b transition-all duration-300 ease-in-out ${
-            filterOpen ? 'max-h-[400px] opacity-100' : 'max-h-0 opacity-0'
-          }`}
+          className={`border-border/60 overflow-hidden border-b transition-all duration-300 ease-in-out ${filterOpen ? 'max-h-[400px] opacity-100' : 'max-h-0 opacity-0'
+            }`}
         >
           <div className="bg-muted/20 space-y-5 px-4 py-4">
             {/* Radius */}
