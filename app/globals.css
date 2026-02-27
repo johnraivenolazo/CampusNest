@@ -22,6 +22,18 @@ html::-webkit-scrollbar {
 
 @custom-variant dark (&:is(.dark *));
 
+@theme inline {
+  --transition-property-theme: background-color, border-color, color, fill, stroke;
+  --transition-timing-function-theme: cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-duration-theme: 300ms;
+}
+
+*, ::before, ::after {
+  transition-property: background-color, border-color, color, fill, stroke;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 300ms;
+}
+
 :root {
   --background: oklch(0.99 0.002 219.8);
   --foreground: oklch(0.12 0.015 219.8);
