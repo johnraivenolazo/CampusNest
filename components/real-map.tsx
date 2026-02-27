@@ -1,9 +1,9 @@
 'use client'
 
-import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet'
+import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
-import { useEffect, useCallback, useRef, useMemo } from 'react'
+import { useEffect, useCallback, useRef, useMemo, useState } from 'react'
 
 const DefaultIcon = L.icon({
   iconUrl: '/marker-icon.png',
@@ -15,6 +15,40 @@ const DefaultIcon = L.icon({
   shadowSize: [41, 41],
 })
 L.Marker.prototype.options.icon = DefaultIcon
+
+// Custom component to handle user location
+function MapUserLocation({
+  userLocation,
+  setUserLocation
+}: {
+  userLocation: [number, number] | null;
+  setUserLocation: (loc: [number, number]) => void
+}) {
+  const map = useMap()
+
+  useEffect(() => {
+    // Only ask once, and if we don't already have it
+    if (userLocation || !navigator.geolocation) return
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords
+        setUserLocation([latitude, longitude])
+        // Smoothly fly to the user's location
+        map.flyTo([latitude, longitude], 15, {
+          duration: 2,
+        })
+      },
+      (error) => {
+        console.warn("Geolocation denied or failed:", error)
+        // Silently fails and remains at the fallback center
+      },
+      { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+    )
+  }, [map, userLocation, setUserLocation])
+
+  return null
+}
 
 interface Property {
   id: string
@@ -125,12 +159,11 @@ export default function RealMap({
   initialLat,
   initialLng,
 }: RealMapProps) {
-  // Compute the initial center once — from the first property or fall back to Manila.
-  // This is intentionally a plain variable (not state) so React never re-centers
-  // the map when properties load later.
+  const [userLocation, setUserLocation] = useState<[number, number] | null>(null)
+
+  // Compute the initial center once — from the first property or fall back to Manila temporarily.
   const lat0 = Number(initialLat)
   const lng0 = Number(initialLng)
-
   const initialCenter: [number, number] = useMemo(
     () => [
       Number.isFinite(lat0) && lat0 !== 0 ? lat0 : 14.5995,
@@ -154,8 +187,28 @@ export default function RealMap({
           maxZoom={19}
         />
         <FlyToSelected selectedProperty={selectedProperty} />
+        <MapUserLocation userLocation={userLocation} setUserLocation={setUserLocation} />
         <MapFixer />
         <MapInvalidator trigger={properties.length} />
+
+        {/* User Location Marker */}
+        {userLocation && (
+          <Marker
+            position={userLocation}
+            icon={L.divIcon({
+              className: 'bg-transparent border-none',
+              html: `<div class="w-4 h-4 rounded-full bg-blue-500 border-2 border-white shadow-[0_0_10px_rgba(59,130,246,0.8)] relative">
+                <div class="absolute inset-0 rounded-full border-2 border-blue-400 border-opacity-50 animate-ping"></div>
+              </div>`,
+              iconSize: [16, 16],
+              iconAnchor: [8, 8],
+            })}
+          >
+            <Popup className="rounded-lg overflow-hidden border-0 shadow-lg p-0">
+              <div className="p-2 text-sm font-semibold">Your Location</div>
+            </Popup>
+          </Marker>
+        )}
 
         {properties.map((property) =>
           property.latitude && property.longitude ? (
