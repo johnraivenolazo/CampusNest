@@ -79,7 +79,7 @@ export default function PropertyMessagesView({
       <div className="mx-auto max-w-6xl p-6 md:p-10">
         <div className="mb-8 flex items-center gap-4">
           <Link href="/landlord/dashboard" className="text-primary hover:underline">
-            ← Back to Dashboard
+            Back to Dashboard
           </Link>
           <h1 className="flex-1 text-2xl font-bold">Messages: {property.title}</h1>
         </div>
@@ -100,11 +100,10 @@ export default function PropertyMessagesView({
                       <button
                         key={message.id}
                         onClick={() => setSelectedMessage(message)}
-                        className={`w-full rounded-lg border p-3 text-left transition-colors ${
-                          selectedMessage?.id === message.id
+                        className={`w-full rounded-lg border p-3 text-left transition-colors ${selectedMessage?.id === message.id
                             ? 'border-primary bg-primary/5'
                             : 'border-border hover:bg-muted/50'
-                        }`}
+                          }`}
                       >
                         <p className="line-clamp-1 text-sm font-medium">
                           {message.sender?.user_metadata?.full_name || 'Anonymous'}

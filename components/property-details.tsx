@@ -70,7 +70,7 @@ export default function PropertyDetails({ property, user }: PropertyDetailsProps
     <div className="bg-background min-h-screen">
       <div className="mx-auto max-w-4xl p-6 md:p-10">
         <Link href="/" className="text-primary mb-6 inline-block hover:underline">
-          ← Back to listings
+          Back to listings
         </Link>
 
         <div className="grid gap-6 md:grid-cols-3">
@@ -130,8 +130,8 @@ export default function PropertyDetails({ property, user }: PropertyDetailsProps
                       key={idx}
                       onClick={() => setActiveImageIndex(idx)}
                       className={`relative h-20 w-32 shrink-0 overflow-hidden rounded-lg border-2 transition-all ${activeImageIndex === idx
-                          ? 'scale-95 border-amber-500 shadow-md'
-                          : 'border-transparent opacity-70 hover:opacity-100'
+                        ? 'scale-95 border-amber-500 shadow-md'
+                        : 'border-transparent opacity-70 hover:opacity-100'
                         }`}
                     >
                       <Image src={img} alt={`Thumbnail ${idx + 1}`} fill className="object-cover" />
