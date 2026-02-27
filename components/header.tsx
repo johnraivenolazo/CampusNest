@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { User } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter, usePathname } from 'next/navigation'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { LogOut, LayoutDashboard, Bookmark, ChevronDown } from 'lucide-react'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { AuthDialog } from '@/components/auth-dialog'
@@ -23,6 +23,21 @@ export default function Header({ user }: { user: User | null }) {
     setAuthView(view)
     setAuthOpen(true)
   }
+
+  useEffect(() => {
+    const supabase = createClient()
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
+        router.refresh()
+      }
+    })
+
+    return () => {
+      subscription.unsubscribe()
+    }
+  }, [router])
 
   const handleLogout = async () => {
     setIsLoading(true)
