@@ -144,7 +144,7 @@ export default function Header({ user }: { user: User | null }) {
                 size="sm"
                 className="bg-amber-500 font-semibold text-white shadow-sm hover:bg-amber-600"
               >
-                Get started
+                Sign Up Now
               </Button>
             </div>
           )}
