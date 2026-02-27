@@ -206,7 +206,7 @@ html::-webkit-scrollbar {
 }
 
 .property-popup .leaflet-popup-tip-container {
-  display: none !important; 
+  display: none !important;
 }
 
 .property-popup .bg-card {
@@ -225,6 +225,3 @@ html::-webkit-scrollbar {
 .property-popup .leaflet-popup-close-button {
   display: none !important;
 }
-
-
-

@@ -131,10 +131,13 @@ export default function RealMap({
   const lat0 = Number(initialLat)
   const lng0 = Number(initialLng)
 
-  const initialCenter: [number, number] = useMemo(() => [
-    Number.isFinite(lat0) && lat0 !== 0 ? lat0 : 14.5995,
-    Number.isFinite(lng0) && lng0 !== 0 ? lng0 : 120.9842,
-  ], [lat0, lng0])
+  const initialCenter: [number, number] = useMemo(
+    () => [
+      Number.isFinite(lat0) && lat0 !== 0 ? lat0 : 14.5995,
+      Number.isFinite(lng0) && lng0 !== 0 ? lng0 : 120.9842,
+    ],
+    [lat0, lng0]
+  )
 
   return (
     <div className="relative h-full w-full" style={{ minHeight: '400px' }}>

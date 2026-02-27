@@ -25,13 +25,15 @@ export function ThemeToggle() {
     >
       {/* Sun — visible in dark mode */}
       <Sun
-        className={`absolute h-[1.1rem] w-[1.1rem] transition-all duration-300 ${isDark ? 'scale-100 rotate-0 opacity-100 text-amber-500' : 'scale-75 -rotate-90 opacity-0'
-          }`}
+        className={`absolute h-[1.1rem] w-[1.1rem] transition-all duration-300 ${
+          isDark ? 'scale-100 rotate-0 text-amber-500 opacity-100' : 'scale-75 -rotate-90 opacity-0'
+        }`}
       />
       {/* Moon — visible in light mode */}
       <Moon
-        className={`absolute h-[1.1rem] w-[1.1rem] transition-all duration-300 ${isDark ? 'scale-75 rotate-90 opacity-0' : 'scale-100 rotate-0 opacity-100 text-slate-700'
-          }`}
+        className={`absolute h-[1.1rem] w-[1.1rem] transition-all duration-300 ${
+          isDark ? 'scale-75 rotate-90 opacity-0' : 'scale-100 rotate-0 text-slate-700 opacity-100'
+        }`}
       />
     </button>
   )

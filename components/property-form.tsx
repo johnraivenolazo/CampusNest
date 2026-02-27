@@ -53,10 +53,14 @@ export default function PropertyForm({ user, initialData, propertyId }: Property
     room_type: (initialData?.room_type as 'studio' | 'single' | 'double' | 'apartment') || 'single',
     amenities: Array.isArray(initialData?.amenities)
       ? initialData.amenities.join(', ')
-      : (typeof initialData?.amenities === 'string' ? initialData.amenities : ''),
+      : typeof initialData?.amenities === 'string'
+        ? initialData.amenities
+        : '',
     rules: Array.isArray(initialData?.rules)
       ? initialData.rules.join(', ')
-      : (typeof initialData?.rules === 'string' ? initialData.rules : ''),
+      : typeof initialData?.rules === 'string'
+        ? initialData.rules
+        : '',
   })
 
   const handleChange = (
@@ -183,9 +187,7 @@ export default function PropertyForm({ user, initialData, propertyId }: Property
           .eq('id', propertyId)
         error = updateError
       } else {
-        const { error: insertError } = await supabase
-          .from('properties')
-          .insert(propertyData)
+        const { error: insertError } = await supabase.from('properties').insert(propertyData)
         error = insertError
       }
 
@@ -433,7 +435,13 @@ export default function PropertyForm({ user, initialData, propertyId }: Property
             <a href="/landlord/dashboard">Cancel</a>
           </Button>
           <Button type="submit" disabled={isLoading}>
-            {isLoading ? (propertyId ? 'Saving...' : 'Creating...') : (propertyId ? 'Save Changes' : 'Create Listing')}
+            {isLoading
+              ? propertyId
+                ? 'Saving...'
+                : 'Creating...'
+              : propertyId
+                ? 'Save Changes'
+                : 'Create Listing'}
           </Button>
         </div>
       </div>

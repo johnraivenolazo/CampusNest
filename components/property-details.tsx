@@ -8,7 +8,16 @@ import Link from 'next/link'
 import { useState } from 'react'
 import Image from 'next/image'
 import MessageDialog from '@/components/message-dialog'
-import { CheckCircle2, MessageCircle, Bookmark, Bell, ArrowRight, ChevronLeft, ChevronRight, Image as ImageIcon } from 'lucide-react'
+import {
+  CheckCircle2,
+  MessageCircle,
+  Bookmark,
+  Bell,
+  ArrowRight,
+  ChevronLeft,
+  ChevronRight,
+  Image as ImageIcon,
+} from 'lucide-react'
 import { formatCurrency } from '@/lib/utils.currency'
 import PropertyReviews from '@/components/property-reviews'
 
@@ -83,26 +92,30 @@ export default function PropertyDetails({ property, user }: PropertyDetailsProps
                     {images.length > 1 && (
                       <>
                         <button
-                          onClick={() => setActiveImageIndex((prev) => (prev > 0 ? prev - 1 : images.length - 1))}
-                          className="absolute left-4 top-1/2 -translate-y-1/2 rounded-full bg-black/30 p-2 text-white backdrop-blur-md transition-all hover:bg-black/50"
+                          onClick={() =>
+                            setActiveImageIndex((prev) => (prev > 0 ? prev - 1 : images.length - 1))
+                          }
+                          className="absolute top-1/2 left-4 -translate-y-1/2 rounded-full bg-black/30 p-2 text-white backdrop-blur-md transition-all hover:bg-black/50"
                         >
                           <ChevronLeft className="h-6 w-6" />
                         </button>
                         <button
-                          onClick={() => setActiveImageIndex((prev) => (prev < images.length - 1 ? prev + 1 : 0))}
-                          className="absolute right-4 top-1/2 -translate-y-1/2 rounded-full bg-black/30 p-2 text-white backdrop-blur-md transition-all hover:bg-black/50"
+                          onClick={() =>
+                            setActiveImageIndex((prev) => (prev < images.length - 1 ? prev + 1 : 0))
+                          }
+                          className="absolute top-1/2 right-4 -translate-y-1/2 rounded-full bg-black/30 p-2 text-white backdrop-blur-md transition-all hover:bg-black/50"
                         >
                           <ChevronRight className="h-6 w-6" />
                         </button>
 
-                        <div className="absolute bottom-4 right-4 rounded-full bg-black/50 px-3 py-1 text-xs font-medium text-white backdrop-blur-md">
+                        <div className="absolute right-4 bottom-4 rounded-full bg-black/50 px-3 py-1 text-xs font-medium text-white backdrop-blur-md">
                           {activeImageIndex + 1} / {images.length}
                         </div>
                       </>
                     )}
                   </>
                 ) : (
-                  <div className="flex flex-col items-center justify-center h-full text-muted-foreground italic">
+                  <div className="text-muted-foreground flex h-full flex-col items-center justify-center italic">
                     <ImageIcon className="mb-2 h-12 w-12 opacity-20" />
                     <p>No images available for this property</p>
                   </div>
@@ -116,15 +129,13 @@ export default function PropertyDetails({ property, user }: PropertyDetailsProps
                     <button
                       key={idx}
                       onClick={() => setActiveImageIndex(idx)}
-                      className={`relative h-20 w-32 shrink-0 overflow-hidden rounded-lg border-2 transition-all ${activeImageIndex === idx ? 'border-amber-500 scale-95 shadow-md' : 'border-transparent opacity-70 hover:opacity-100'
-                        }`}
+                      className={`relative h-20 w-32 shrink-0 overflow-hidden rounded-lg border-2 transition-all ${
+                        activeImageIndex === idx
+                          ? 'scale-95 border-amber-500 shadow-md'
+                          : 'border-transparent opacity-70 hover:opacity-100'
+                      }`}
                     >
-                      <Image
-                        src={img}
-                        alt={`Thumbnail ${idx + 1}`}
-                        fill
-                        className="object-cover"
-                      />
+                      <Image src={img} alt={`Thumbnail ${idx + 1}`} fill className="object-cover" />
                     </button>
                   ))}
                 </div>

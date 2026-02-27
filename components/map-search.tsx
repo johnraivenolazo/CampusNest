@@ -99,7 +99,7 @@ export default function MapSearch({ user }: { user: User | null }) {
         setInitialLng((prev) => (prev === 0 ? pos.coords.longitude : prev))
         setUsingGeolocation(true)
       },
-      () => { },
+      () => {},
       { timeout: 8000, maximumAge: 60000 }
     )
   }, [])
@@ -165,8 +165,9 @@ export default function MapSearch({ user }: { user: User | null }) {
     <div className="relative flex h-[calc(100vh-65px)] overflow-hidden">
       {/* ─── Left Sidebar (List) ─── */}
       <div
-        className={`border-border bg-background flex w-full shrink-0 flex-col overflow-hidden border-r md:w-[360px] md:flex ${viewMode === 'list' ? 'flex' : 'hidden'
-          }`}
+        className={`border-border bg-background flex w-full shrink-0 flex-col overflow-hidden border-r md:flex md:w-[360px] ${
+          viewMode === 'list' ? 'flex' : 'hidden'
+        }`}
       >
         {/* ── Search bar row ── */}
         <div className="border-border/60 space-y-3 border-b px-4 pt-4 pb-3">
@@ -201,10 +202,11 @@ export default function MapSearch({ user }: { user: User | null }) {
             <button
               onClick={filterOpen ? () => setFilterOpen(false) : openFilter}
               title="Toggle filters"
-              className={`relative flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border transition-all duration-200 ${filterOpen || activeFilterCount > 0
+              className={`relative flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border transition-all duration-200 ${
+                filterOpen || activeFilterCount > 0
                   ? 'border-amber-500 bg-amber-500 text-white shadow-sm'
                   : 'bg-muted/40 text-muted-foreground border-border/60 hover:border-muted-foreground/40 hover:text-foreground'
-                }`}
+              }`}
             >
               <SlidersHorizontal className="h-4 w-4" />
               {activeFilterCount > 0 && (
@@ -229,8 +231,9 @@ export default function MapSearch({ user }: { user: User | null }) {
 
         {/* ── Filter panel (slide-down) ── */}
         <div
-          className={`border-border/60 overflow-hidden border-b transition-all duration-300 ease-in-out ${filterOpen ? 'max-h-[400px] opacity-100' : 'max-h-0 opacity-0'
-            }`}
+          className={`border-border/60 overflow-hidden border-b transition-all duration-300 ease-in-out ${
+            filterOpen ? 'max-h-[400px] opacity-100' : 'max-h-0 opacity-0'
+          }`}
         >
           <div className="bg-muted/20 space-y-5 px-4 py-4">
             {/* Radius */}
@@ -383,7 +386,7 @@ export default function MapSearch({ user }: { user: User | null }) {
       <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 md:hidden">
         <button
           onClick={() => setViewMode(viewMode === 'list' ? 'map' : 'list')}
-          className="bg-amber-500 hover:bg-amber-600 text-white flex items-center gap-2 rounded-full px-6 py-3 font-bold shadow-xl transition-all hover:scale-105 active:scale-95"
+          className="flex items-center gap-2 rounded-full bg-amber-500 px-6 py-3 font-bold text-white shadow-xl transition-all hover:scale-105 hover:bg-amber-600 active:scale-95"
         >
           {viewMode === 'list' ? (
             <>

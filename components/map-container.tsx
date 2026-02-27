@@ -90,7 +90,7 @@ export default function MapContainer({
             >
               {/* Handle */}
               <div className="flex w-full justify-center p-4">
-                <div className="h-1.5 w-12 rounded-full bg-muted-foreground/20" />
+                <div className="bg-muted-foreground/20 h-1.5 w-12 rounded-full" />
               </div>
 
               <div className="flex flex-1 flex-col overflow-y-auto pb-8">
@@ -105,7 +105,7 @@ export default function MapContainer({
                         className="object-cover"
                       />
                     ) : (
-                      <div className="flex h-full items-center justify-center text-muted-foreground/30">
+                      <div className="text-muted-foreground/30 flex h-full items-center justify-center">
                         <ImageIcon className="h-10 w-10" />
                       </div>
                     )}
@@ -117,14 +117,16 @@ export default function MapContainer({
 
                 <div className="space-y-6 p-6">
                   <div>
-                    <h2 className="text-xl font-black leading-tight tracking-tighter text-amber-500 uppercase">
+                    <h2 className="text-xl leading-tight font-black tracking-tighter text-amber-500 uppercase">
                       {selectedProperty.title}
                     </h2>
                     <div className="mt-2 flex items-baseline gap-1.5">
                       <span className="text-2xl font-black uppercase">
                         {formatCurrency(selectedProperty.price_per_month, 'en-PH', 'PHP')}
                       </span>
-                      <span className="text-muted-foreground text-[10px] font-black uppercase tracking-tighter">/ month</span>
+                      <span className="text-muted-foreground text-[10px] font-black tracking-tighter uppercase">
+                        / month
+                      </span>
                     </div>
                   </div>
 
@@ -139,7 +141,7 @@ export default function MapContainer({
 
                   <Link
                     href={`/properties/${selectedProperty.id}`}
-                    className="group bg-amber-500 hover:bg-amber-600 flex w-full items-center justify-center gap-2 rounded-2xl py-5 text-[11px] font-black text-white transition-all shadow-xl active:scale-95"
+                    className="group flex w-full items-center justify-center gap-2 rounded-2xl bg-amber-500 py-5 text-[11px] font-black text-white shadow-xl transition-all hover:bg-amber-600 active:scale-95"
                   >
                     VIEW FULL LISTING
                     <ChevronRight className="h-4 w-4" />
@@ -165,7 +167,7 @@ export default function MapContainer({
               </button>
 
               <div className="flex flex-1 flex-col overflow-y-auto">
-                <div className="relative h-64 w-full bg-muted">
+                <div className="bg-muted relative h-64 w-full">
                   {selectedProperty.property_images?.[0] ? (
                     <Image
                       src={selectedProperty.property_images[0]}
@@ -174,7 +176,7 @@ export default function MapContainer({
                       className="object-cover"
                     />
                   ) : (
-                    <div className="flex h-full items-center justify-center text-muted-foreground/30">
+                    <div className="text-muted-foreground/30 flex h-full items-center justify-center">
                       <ImageIcon className="h-12 w-12" />
                     </div>
                   )}
@@ -185,14 +187,16 @@ export default function MapContainer({
 
                 <div className="space-y-6 p-6">
                   <div>
-                    <h2 className="text-xl font-black leading-tight tracking-tighter text-amber-500 uppercase">
+                    <h2 className="text-xl leading-tight font-black tracking-tighter text-amber-500 uppercase">
                       {selectedProperty.title}
                     </h2>
                     <div className="mt-2 flex items-baseline gap-1.5">
                       <span className="text-2xl font-black">
                         {formatCurrency(selectedProperty.price_per_month, 'en-PH', 'PHP')}
                       </span>
-                      <span className="text-muted-foreground text-xs font-bold uppercase">/ month</span>
+                      <span className="text-muted-foreground text-xs font-bold uppercase">
+                        / month
+                      </span>
                     </div>
                   </div>
 
@@ -205,11 +209,16 @@ export default function MapContainer({
                     </p>
                   </div>
 
-                  <div className="border-border/60 py-4 border-t border-b">
-                    <h4 className="text-muted-foreground text-[10px] font-black tracking-widest uppercase">Amenities</h4>
+                  <div className="border-border/60 border-t border-b py-4">
+                    <h4 className="text-muted-foreground text-[10px] font-black tracking-widest uppercase">
+                      Amenities
+                    </h4>
                     <div className="mt-3 flex flex-wrap gap-2">
                       {selectedProperty.amenities?.slice(0, 4).map((amenity, idx) => (
-                        <span key={idx} className="bg-muted/50 rounded-md px-2 py-1 text-[10px] font-bold">
+                        <span
+                          key={idx}
+                          className="bg-muted/50 rounded-md px-2 py-1 text-[10px] font-bold"
+                        >
                           {amenity}
                         </span>
                       ))}
@@ -223,7 +232,7 @@ export default function MapContainer({
 
                   <Link
                     href={`/properties/${selectedProperty.id}`}
-                    className="group bg-amber-500 hover:bg-amber-600 flex w-full items-center justify-center gap-2 rounded-xl py-4 text-xs font-black text-white transition-all shadow-lg hover:shadow-amber-500/20 active:scale-[0.98]"
+                    className="group flex w-full items-center justify-center gap-2 rounded-xl bg-amber-500 py-4 text-xs font-black text-white shadow-lg transition-all hover:bg-amber-600 hover:shadow-amber-500/20 active:scale-[0.98]"
                   >
                     VIEW FULL LISTING
                     <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
