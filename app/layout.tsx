@@ -8,6 +8,9 @@ import './globals.css'
 const _geist = Geist({ subsets: ['latin'] })
 const _geistMono = Geist_Mono({ subsets: ['latin'] })
 
+import { createClient } from '@/lib/supabase/server'
+import MessagingOverlay from '@/components/messaging-overlay'
+
 export const metadata: Metadata = {
   title: 'CampusNest - Find student housing near your campus',
   description:
@@ -26,11 +29,14 @@ export const metadata: Metadata = {
   },
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode
 }>) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
   return (
     <html lang="en" suppressHydrationWarning>
       <head />
@@ -41,6 +47,7 @@ export default function RootLayout({
           enableSystem
         >
           {children}
+          <MessagingOverlay user={user} />
           <Toaster />
           <Analytics />
         </ThemeProvider>

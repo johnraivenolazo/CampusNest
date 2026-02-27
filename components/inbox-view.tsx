@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/hooks/use-toast'
 import Image from 'next/image'
-import { Building } from 'lucide-react'
+import { Building, X } from 'lucide-react'
 
 interface Profile {
   id: string
@@ -47,9 +47,13 @@ interface Conversation {
 export default function InboxView({
   initialMessages,
   currentUser,
+  isOverlay = false,
+  onClose,
 }: {
   initialMessages: Message[]
   currentUser: User
+  isOverlay?: boolean
+  onClose?: () => void
 }) {
   const { toast } = useToast()
 
@@ -76,7 +80,6 @@ export default function InboxView({
 
     const conv = conversationsMap.get(conversationId)!
     conv.messages.push(msg)
-    // Update last message time if this message is newer
     if (new Date(msg.created_at) > new Date(conv.lastMessageAt)) {
       conv.lastMessageAt = msg.created_at
     }
@@ -87,13 +90,15 @@ export default function InboxView({
   )
 
   const [activeConversationId, setActiveConversationId] = useState<string | null>(
-    conversations.length > 0 ? conversations[0].id : null
+    !isOverlay && conversations.length > 0 ? conversations[0].id : null
+  )
+  const [mobileView, setMobileView] = useState<'list' | 'chat'>(
+    !isOverlay && conversations.length > 0 ? 'chat' : 'list'
   )
   const [replyText, setReplyText] = useState('')
   const [isSending, setIsSending] = useState(false)
   const [localMessages, setLocalMessages] = useState<Message[]>(initialMessages)
 
-  // Re-compute active conversation with local messages
   const activeConversationInfo = conversations.find((c) => c.id === activeConversationId)
 
   const activeMessages = localMessages
@@ -104,7 +109,7 @@ export default function InboxView({
       const propId = msg.property_id || 'no-property'
       return `${propId}_${otherUser?.id}` === activeConversationId
     })
-    .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()) // chronological
+    .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
 
   const handleSendMessage = async () => {
     if (!replyText.trim() || !activeConversationInfo) return
@@ -125,43 +130,17 @@ export default function InboxView({
           property_id: propertyId || null,
           content: replyText,
         })
-        .select(
-          `
-          id,
-          content,
-          created_at,
-          sender_id,
-          receiver_id,
-          property_id,
-          read,
-          properties (
-            id,
-            title,
-            property_images
-          ),
-          sender:profiles!messages_sender_id_fkey (
-            id,
-            full_name,
-            email,
-            profile_image_url
-          ),
-          receiver:profiles!messages_receiver_id_fkey (
-            id,
-            full_name,
-            email,
-            profile_image_url
-          )
-        `
-        )
+        .select(`
+          id, content, created_at, sender_id, receiver_id, property_id, read,
+          properties (id, title, property_images),
+          sender:profiles!messages_sender_id_fkey (id, full_name, email, profile_image_url),
+          receiver:profiles!messages_receiver_id_fkey (id, full_name, email, profile_image_url)
+        `)
         .single()
 
       if (error) throw error
-
       setLocalMessages((prev) => [...prev, data as any])
       setReplyText('')
-
-      // Removed the 'toast' on success to keep it immersive, or we can keep it subtle.
-      // A chat bubble naturally appearing is enough feedback.
     } catch (error) {
       console.error('Failed to send reply:', error)
       toast({
@@ -174,38 +153,45 @@ export default function InboxView({
     }
   }
 
-  return (
-    <div className="mx-auto max-w-6xl p-4 md:p-8">
-      <h1 className="mb-8 text-3xl font-bold tracking-tight">Messages</h1>
+  const handleSelectConversation = (id: string) => {
+    setActiveConversationId(id)
+    setMobileView('chat')
+  }
 
-      <div className="grid h-[700px] gap-6 md:grid-cols-3">
-        {/* Sidebar */}
-        <Card className="hide-scrollbar flex flex-col overflow-hidden md:col-span-1">
-          <div className="bg-muted/30 shrink-0 border-b p-4 font-semibold">Conversations</div>
+  const containerClasses = isOverlay
+    ? "flex h-full flex-col overflow-hidden bg-background"
+    : "mx-auto max-w-6xl p-4 md:p-8"
+
+  const gridClasses = isOverlay
+    ? "flex flex-1 overflow-hidden"
+    : "grid h-[700px] gap-6 md:grid-cols-3"
+
+  return (
+    <div className={containerClasses}>
+      {!isOverlay && <h1 className="mb-8 text-3xl font-bold tracking-tight">Messages</h1>}
+
+      <div className={gridClasses}>
+        {/* Sidebar / Conversation List */}
+        <Card className={`hide-scrollbar flex flex-col overflow-hidden border-none shadow-none md:border md:shadow-sm ${isOverlay ? 'w-full' : 'md:col-span-1'
+          } ${mobileView === 'chat' && !isOverlay ? 'hidden md:flex' : ''} ${mobileView === 'chat' && isOverlay ? 'hidden' : 'flex'
+          }`}>
+          {!isOverlay && <div className="bg-muted/30 shrink-0 border-b p-4 font-semibold">Conversations</div>}
           <div className="flex-1 overflow-y-auto">
             {conversations.length === 0 ? (
               <div className="text-muted-foreground p-8 text-center text-sm">No messages yet.</div>
             ) : (
               conversations.map((conv) => {
                 const isActive = activeConversationId === conv.id
-                const otherName =
-                  conv.otherUser?.full_name ||
-                  conv.otherUser?.email?.split('@')[0] ||
-                  'Unknown User'
+                const otherName = conv.otherUser?.full_name || conv.otherUser?.email?.split('@')[0] || 'Unknown User'
                 const propThumb = conv.property?.property_images?.[0]
-
-                // Get the latest message content from this conv for the preview
-                const latestMsg = conv.messages.sort(
-                  (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-                )[0]
+                const latestMsg = conv.messages.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]
 
                 return (
                   <button
                     key={conv.id}
-                    onClick={() => setActiveConversationId(conv.id)}
-                    className={`flex w-full items-center gap-3 border-b p-4 text-left transition-colors ${
-                      isActive ? 'bg-amber-50 dark:bg-amber-950/20' : 'hover:bg-muted/50'
-                    }`}
+                    onClick={() => handleSelectConversation(conv.id)}
+                    className={`flex w-full items-center gap-3 border-b p-4 text-left transition-colors ${isActive ? 'bg-amber-50 dark:bg-amber-950/20' : 'hover:bg-muted/50'
+                      }`}
                   >
                     <div className="bg-muted relative flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-lg">
                       {propThumb ? (
@@ -231,66 +217,59 @@ export default function InboxView({
         </Card>
 
         {/* Main Chat Area */}
-        <Card className="flex h-full flex-col overflow-hidden md:col-span-2">
+        <Card className={`flex flex-col overflow-hidden border-none shadow-none md:border md:shadow-sm ${isOverlay ? 'w-full' : 'md:col-span-2'
+          } ${mobileView === 'list' && !isOverlay ? 'hidden md:flex' : ''} ${mobileView === 'list' && isOverlay ? 'hidden' : 'flex'
+          }`}>
           {activeConversationInfo ? (
             <>
               {/* Chat Header */}
               <div className="bg-muted/30 flex shrink-0 items-center gap-3 border-b p-4">
-                <div className="bg-muted relative h-10 w-10 shrink-0 overflow-hidden rounded-full border">
+                {(isOverlay || !isOverlay) && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="md:hidden"
+                    onClick={() => setMobileView('list')}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6" /></svg>
+                  </Button>
+                )}
+                <div className="bg-muted relative h-9 w-9 shrink-0 overflow-hidden rounded-full border">
                   {activeConversationInfo.otherUser?.profile_image_url ? (
-                    <Image
-                      src={activeConversationInfo.otherUser.profile_image_url}
-                      alt="User"
-                      fill
-                      className="object-cover"
-                    />
+                    <Image src={activeConversationInfo.otherUser.profile_image_url} alt="User" fill className="object-cover" />
                   ) : (
-                    <div className="flex h-full w-full items-center justify-center bg-amber-100 font-bold text-amber-700">
-                      {(
-                        activeConversationInfo.otherUser?.full_name ||
-                        activeConversationInfo.otherUser?.email ||
-                        'U'
-                      )
-                        .charAt(0)
-                        .toUpperCase()}
+                    <div className="flex h-full w-full items-center justify-center bg-amber-100 text-sm font-bold text-amber-700">
+                      {(activeConversationInfo.otherUser?.full_name || activeConversationInfo.otherUser?.email || 'U').charAt(0).toUpperCase()}
                     </div>
                   )}
                 </div>
-                <div>
-                  <h2 className="font-semibold">
-                    {activeConversationInfo.otherUser?.full_name ||
-                      activeConversationInfo.otherUser?.email?.split('@')[0] ||
-                      'Unknown User'}
+                <div className="overflow-hidden">
+                  <h2 className="truncate text-sm font-semibold">
+                    {activeConversationInfo.otherUser?.full_name || activeConversationInfo.otherUser?.email?.split('@')[0] || 'Unknown User'}
                   </h2>
-                  <p className="text-muted-foreground text-xs">
+                  <p className="text-muted-foreground truncate text-[10px]">
                     {activeConversationInfo.property?.title || 'General Inquiry'}
                   </p>
                 </div>
+                {isOverlay && onClose && (
+                  <Button variant="ghost" size="icon" className="ml-auto" onClick={onClose}>
+                    <X className="h-4 w-4" />
+                  </Button>
+                )}
               </div>
 
               {/* Chat Messages */}
-              <div className="flex-1 space-y-4 overflow-y-auto p-4">
+              <div className="flex-1 space-y-4 overflow-y-auto p-4 scroll-smooth">
                 {activeMessages.map((msg) => {
                   const isMe = msg.sender_id === currentUser.id
                   return (
-                    <div
-                      key={msg.id}
-                      className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}
-                    >
-                      <div
-                        className={`max-w-[80%] rounded-2xl px-4 py-2 text-sm ${
-                          isMe
-                            ? 'rounded-br-none bg-amber-500 text-white'
-                            : 'bg-muted rounded-bl-none'
-                        }`}
-                      >
+                    <div key={msg.id} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
+                      <div className={`max-w-[85%] rounded-2xl px-3 py-1.5 text-sm ${isMe ? 'rounded-br-none bg-amber-500 text-white' : 'bg-muted rounded-bl-none'
+                        }`}>
                         {msg.content}
                       </div>
-                      <span className="text-muted-foreground mx-1 mt-1 text-[10px]">
-                        {new Date(msg.created_at).toLocaleTimeString([], {
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })}
+                      <span className="text-muted-foreground mx-1 mt-1 text-[9px]">
+                        {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </span>
                     </div>
                   )
@@ -298,10 +277,10 @@ export default function InboxView({
               </div>
 
               {/* Chat Input */}
-              <div className="bg-background flex shrink-0 gap-3 border-t p-4">
+              <div className="bg-background flex shrink-0 gap-2 border-t p-3">
                 <Textarea
-                  placeholder="Type your message..."
-                  className="min-h-[50px] resize-none"
+                  placeholder="Message..."
+                  className="min-h-[40px] flex-1 resize-none bg-muted/30 border-none focus-visible:ring-0"
                   value={replyText}
                   onChange={(e) => setReplyText(e.target.value)}
                   onKeyDown={(e) => {
@@ -314,14 +293,19 @@ export default function InboxView({
                 <Button
                   onClick={handleSendMessage}
                   disabled={isSending || !replyText.trim()}
-                  className="mt-auto"
+                  size="sm"
+                  variant="ghost"
+                  className="mt-auto text-amber-600 hover:text-amber-700 hover:bg-transparent px-2"
                 >
-                  {isSending ? '...' : 'Send'}
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m22 2-7 20-4-9-9-4Z" /><path d="M22 2 11 13" /></svg>
                 </Button>
               </div>
             </>
           ) : (
-            <div className="text-muted-foreground flex flex-1 items-center justify-center">
+            <div className="text-muted-foreground flex flex-1 flex-col items-center justify-center p-8 text-center text-sm">
+              <div className="mb-4 rounded-full bg-muted p-4">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-muted-foreground/50"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
+              </div>
               Select a conversation to start chatting
             </div>
           )}
