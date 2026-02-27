@@ -118,8 +118,8 @@ export default function PropertyListings({
             key={property.id}
             onClick={() => onPropertySelect(property)}
             className={`group cursor-pointer overflow-hidden rounded-2xl border transition-all duration-300 ${isSelected
-                ? 'scale-[1.01] border-amber-400 bg-amber-50/40 shadow-[0_0_0_2px_rgba(251,191,36,0.25)] dark:border-amber-500 dark:bg-amber-950/10'
-                : 'border-border bg-card hover:border-muted-foreground/30 hover:-translate-y-0.5 hover:shadow-lg'
+              ? 'scale-[1.01] border-amber-400 bg-amber-50/40 shadow-[0_0_0_2px_rgba(251,191,36,0.25)] dark:border-amber-500 dark:bg-amber-950/10'
+              : 'border-border bg-card hover:border-muted-foreground/30 hover:-translate-y-0.5 hover:shadow-lg'
               }`}
           >
             {/* Thumbnail */}
@@ -216,7 +216,7 @@ export default function PropertyListings({
               {/* Guest nudge — shown instead of contact button */}
               {!user && property.status === 'available' && (
                 <Link
-                  href="/auth/signup"
+                  href="/"
                   onClick={(e) => e.stopPropagation()}
                   className="text-muted-foreground block text-center text-[10px] transition-colors hover:text-amber-500"
                 >

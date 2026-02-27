@@ -129,11 +129,10 @@ export default function PropertyDetails({ property, user }: PropertyDetailsProps
                     <button
                       key={idx}
                       onClick={() => setActiveImageIndex(idx)}
-                      className={`relative h-20 w-32 shrink-0 overflow-hidden rounded-lg border-2 transition-all ${
-                        activeImageIndex === idx
+                      className={`relative h-20 w-32 shrink-0 overflow-hidden rounded-lg border-2 transition-all ${activeImageIndex === idx
                           ? 'scale-95 border-amber-500 shadow-md'
                           : 'border-transparent opacity-70 hover:opacity-100'
-                      }`}
+                        }`}
                     >
                       <Image src={img} alt={`Thumbnail ${idx + 1}`} fill className="object-cover" />
                     </button>
@@ -281,7 +280,7 @@ export default function PropertyDetails({ property, user }: PropertyDetailsProps
                       asChild
                       className="w-full bg-amber-500 font-semibold text-white hover:bg-amber-600"
                     >
-                      <Link href="/auth/signup">
+                      <Link href="/">
                         Get started — it&apos;s free
                         <ArrowRight className="ml-2 h-4 w-4" />
                       </Link>

@@ -39,6 +39,13 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
+  // Redirect legacy /auth/* paths to home page
+  if (request.nextUrl.pathname.startsWith('/auth/')) {
+    const url = request.nextUrl.clone()
+    url.pathname = '/'
+    return NextResponse.redirect(url)
+  }
+
   if (
     (request.nextUrl.pathname.startsWith('/landlord') ||
       request.nextUrl.pathname.startsWith('/admin')) &&
