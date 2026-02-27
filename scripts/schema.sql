@@ -1,5 +1,5 @@
--- CampusNest Database Schema
--- This script sets up all tables for the CampusNest platform
+-- CampusNest Comprehensive Database Schema
+-- Consolidates all tables, triggers, and storage buckets into a single file
 
 -- 1. Profiles table (extends auth.users)
 CREATE TABLE IF NOT EXISTS public.profiles (
@@ -37,7 +37,7 @@ CREATE TABLE IF NOT EXISTS public.properties (
   bathrooms INT NOT NULL,
   amenities TEXT[], -- Store as array of strings
   rules TEXT,
-  property_images TEXT[], -- URLs of images from Vercel Blob
+  property_images TEXT[], -- URLs of images
   lease_duration TEXT, -- e.g., "3 months", "1 year"
   room_type TEXT NOT NULL CHECK (room_type IN ('studio', 'single', 'double', 'apartment')),
   utilities_included BOOLEAN DEFAULT FALSE,
@@ -61,12 +61,39 @@ CREATE POLICY "Landlords can delete their own properties" ON public.properties F
   auth.uid() = landlord_id
 );
 
--- Create index on location for faster queries
+-- Indexes for properties
 CREATE INDEX IF NOT EXISTS idx_properties_location ON public.properties(latitude, longitude);
 CREATE INDEX IF NOT EXISTS idx_properties_landlord ON public.properties(landlord_id);
 CREATE INDEX IF NOT EXISTS idx_properties_status ON public.properties(status);
 
--- 3. Messages table
+-- 3. Reviews Table
+CREATE TABLE IF NOT EXISTS public.reviews (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  property_id UUID NOT NULL REFERENCES public.properties(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  rating INT NOT NULL CHECK (rating >= 1 AND rating <= 5),
+  comment TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE(property_id, user_id)
+);
+
+ALTER TABLE public.reviews ENABLE ROW LEVEL SECURITY;
+
+-- Policies for reviews
+CREATE POLICY "Anyone can view reviews" ON public.reviews FOR SELECT USING (TRUE);
+CREATE POLICY "Students can post reviews" ON public.reviews FOR INSERT WITH CHECK (
+  auth.uid() = user_id AND
+  auth.uid() IN (SELECT id FROM public.profiles WHERE user_type = 'student')
+);
+CREATE POLICY "Users can manage their own reviews" ON public.reviews FOR ALL USING (auth.uid() = user_id);
+
+-- Indexes for reviews
+CREATE INDEX IF NOT EXISTS idx_reviews_property ON public.reviews(property_id);
+CREATE INDEX IF NOT EXISTS idx_reviews_user ON public.reviews(user_id);
+CREATE INDEX IF NOT EXISTS idx_reviews_created_at ON public.reviews(created_at DESC);
+
+-- 4. Messages table
 CREATE TABLE IF NOT EXISTS public.messages (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   sender_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
@@ -91,13 +118,13 @@ CREATE POLICY "Users can update their received messages" ON public.messages FOR 
   auth.uid() = receiver_id OR auth.uid() = sender_id
 );
 
--- Create index on messages for faster queries
+-- Indexes for messages
 CREATE INDEX IF NOT EXISTS idx_messages_sender ON public.messages(sender_id);
 CREATE INDEX IF NOT EXISTS idx_messages_receiver ON public.messages(receiver_id);
 CREATE INDEX IF NOT EXISTS idx_messages_property ON public.messages(property_id);
 CREATE INDEX IF NOT EXISTS idx_messages_created_at ON public.messages(created_at DESC);
 
--- 4. Inquiries table (for tracking student interest in properties)
+-- 5. Inquiries table
 CREATE TABLE IF NOT EXISTS public.inquiries (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   student_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
@@ -127,11 +154,11 @@ CREATE POLICY "Students can delete their own inquiries" ON public.inquiries FOR 
   auth.uid() = student_id
 );
 
--- Create index on inquiries
+-- Indexes for inquiries
 CREATE INDEX IF NOT EXISTS idx_inquiries_student ON public.inquiries(student_id);
 CREATE INDEX IF NOT EXISTS idx_inquiries_property ON public.inquiries(property_id);
 
--- 5. Verification requests table (for admin to manage landlord verification)
+-- 6. Verification requests table
 CREATE TABLE IF NOT EXISTS public.verification_requests (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   landlord_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
@@ -156,6 +183,45 @@ CREATE POLICY "Admins can update verification requests" ON public.verification_r
   auth.uid() IN (SELECT id FROM public.profiles WHERE user_type = 'admin')
 );
 
--- Create index on verification requests
+-- Indexes for verification requests
 CREATE INDEX IF NOT EXISTS idx_verification_requests_landlord ON public.verification_requests(landlord_id);
 CREATE INDEX IF NOT EXISTS idx_verification_requests_status ON public.verification_requests(status);
+
+-- 7. Auth Trigger (Auto-create profile)
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  INSERT INTO public.profiles (id, email, full_name, user_type)
+  VALUES (
+    new.id,
+    new.email,
+    COALESCE(new.raw_user_meta_data ->> 'full_name', null),
+    COALESCE(new.raw_user_meta_data ->> 'user_type', 'student')
+  )
+  ON CONFLICT (id) DO NOTHING;
+
+  RETURN new;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW
+  EXECUTE FUNCTION public.handle_new_user();
+
+-- 8. Storage Bucket Setup
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('property-images', 'property-images', true)
+ON CONFLICT (id) DO NOTHING;
+
+-- Storage Policies
+CREATE POLICY "Public Access" ON storage.objects FOR SELECT TO public USING ( bucket_id = 'property-images' );
+CREATE POLICY "Authenticated users can upload images" ON storage.objects FOR INSERT TO authenticated WITH CHECK ( bucket_id = 'property-images' );
+CREATE POLICY "Users can update their own images" ON storage.objects FOR UPDATE TO authenticated USING ( bucket_id = 'property-images' and auth.uid() = owner );
+CREATE POLICY "Users can delete their own images" ON storage.objects FOR DELETE TO authenticated USING ( bucket_id = 'property-images' and auth.uid() = owner );
