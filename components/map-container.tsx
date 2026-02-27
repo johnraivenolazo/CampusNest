@@ -85,7 +85,7 @@ export default function MapContainer({
               initial={{ y: '100%' }}
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
-              transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+              transition={{ type: 'spring', stiffness: 400, damping: 35 }}
               className="border-border bg-card/95 fixed inset-x-0 bottom-0 z-30 flex max-h-[85vh] flex-col rounded-t-[2.5rem] border-t shadow-2xl backdrop-blur-xl md:hidden"
             >
               {/* Handle */}
@@ -156,8 +156,8 @@ export default function MapContainer({
               initial={{ x: '100%' }}
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
-              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="border-border bg-card/95 absolute top-0 right-0 z-30 hidden h-full w-[380px] flex-col border-l shadow-2xl backdrop-blur-md md:flex"
+              transition={{ type: 'spring', stiffness: 400, damping: 35 }}
+              className="bg-card/95 border-border fixed top-0 right-0 z-50 flex h-full w-full flex-col border-l shadow-2xl backdrop-blur-xl md:w-[480px]"
             >
               <button
                 onClick={() => onPropertySelect(null)}
