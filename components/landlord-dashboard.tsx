@@ -5,6 +5,20 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import { useState } from 'react'
+import { Trash2, MessageSquare, Edit } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
+import { useRouter } from 'next/navigation'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
 
 interface Property {
   id: string
@@ -24,7 +38,27 @@ export default function LandlordDashboard({
   user: _user,
   initialProperties,
 }: LandlordDashboardProps) {
-  const [properties, _setProperties] = useState<Property[]>(initialProperties)
+  const router = useRouter()
+  const [properties, setProperties] = useState<Property[]>(initialProperties)
+  const [isDeleting, setIsDeleting] = useState<string | null>(null)
+
+  const handleDelete = async (id: string) => {
+    setIsDeleting(id)
+    try {
+      const supabase = createClient()
+      const { error } = await supabase.from('properties').delete().eq('id', id)
+
+      if (error) throw error
+
+      setProperties((prev) => prev.filter((p) => p.id !== id))
+      router.refresh()
+    } catch (error) {
+      console.error('Error deleting property:', error)
+      alert('Failed to delete property. Please try again.')
+    } finally {
+      setIsDeleting(null)
+    }
+  }
 
   const getStatusConfig = (status: string) => {
     switch (status) {
@@ -144,17 +178,49 @@ export default function LandlordDashboard({
                         </span>
                       </div>
                     </div>
-                    <div className="flex shrink-0 gap-2">
-                      <Button asChild variant="outline" size="sm">
-                        <Link href={`/landlord/properties/${property.id}/messages`}>Messages</Link>
+                    <div className="flex shrink-0 items-center gap-2">
+                      <Button asChild variant="outline" size="sm" className="hidden sm:flex">
+                        <Link href={`/landlord/properties/${property.id}/messages`}>
+                          <MessageSquare className="mr-2 h-4 w-4" />
+                          Messages
+                        </Link>
                       </Button>
-                      <Button
-                        asChild
-                        size="sm"
-                        className="bg-amber-500 text-white hover:bg-amber-600"
-                      >
-                        <Link href={`/landlord/properties/${property.id}/edit`}>Edit</Link>
+                      <Button asChild size="sm" variant="outline">
+                        <Link href={`/landlord/properties/${property.id}/edit`}>
+                          <Edit className="mr-2 h-4 w-4" />
+                          Edit
+                        </Link>
                       </Button>
+
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-muted-foreground hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30"
+                            disabled={isDeleting === property.id}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This will permanently delete "{property.title}" and remove all related data. This action cannot be undone.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => handleDelete(property.id)}
+                              className="bg-red-600 text-white hover:bg-red-700"
+                            >
+                              Delete Listing
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </div>
                   </div>
                 )
