@@ -48,7 +48,7 @@ export default function MapContainer({
       <div className="bg-background/80 border-border pointer-events-none absolute top-4 left-1/2 z-10 hidden -translate-x-1/2 items-center gap-1.5 rounded-full border px-3.5 py-1.5 shadow-md backdrop-blur-sm md:flex">
         <span className="text-sm">📍</span>
         <p className="text-muted-foreground text-xs font-medium whitespace-nowrap">
-          Click a pin to view listing details
+          Click the "pin" icon to view listing details
         </p>
       </div>
 
