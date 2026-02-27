@@ -4,9 +4,11 @@ import { User } from '@supabase/supabase-js'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import Image from 'next/image'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { MapPin, Home, Wifi, Car, ShieldCheck, Zap, Droplets, Wind } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils.currency'
+import { createClient } from '@/lib/supabase/client'
 
 interface Property {
   id: string
@@ -58,13 +60,90 @@ const AMENITY_ICONS: Record<string, React.ReactNode> = {
 }
 
 function AmenityPill({ label }: { label: string }) {
-  const key = label.toLowerCase()
-  const icon = Object.entries(AMENITY_ICONS).find(([k]) => key.includes(k))?.[1]
+  const normalized = label.toLowerCase().trim()
+  const icon = AMENITY_ICONS[normalized] || null
+
   return (
-    <span className="bg-muted text-muted-foreground border-border/50 inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium">
-      {icon}
-      {label}
-    </span>
+    <div className="flex shrink-0 items-center justify-center gap-1.5 rounded-full border bg-background/50 px-2 py-0.5 text-[10px] font-medium text-muted-foreground whitespace-nowrap shadow-sm backdrop-blur-md transition-colors hover:bg-muted/50">
+      {icon && <span className="opacity-70">{icon}</span>}
+      <span>{label}</span>
+    </div>
+  )
+}
+
+function SaveButton({ propertyId, userId }: { propertyId: string; userId?: string | undefined }) {
+  const [isSaved, setIsSaved] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
+
+  useEffect(() => {
+    if (!userId) return
+    const checkSave = async () => {
+      const supabase = createClient()
+      const { data } = await supabase
+        .from('saved_properties')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('property_id', propertyId)
+        .single()
+
+      if (data) setIsSaved(true)
+    }
+    checkSave()
+  }, [userId, propertyId])
+
+  const handleToggle = async (e: React.MouseEvent) => {
+    e.stopPropagation() // Prevent triggering the card click
+    if (!userId) {
+      // Could show a toast telling them to log in here
+      return
+    }
+
+    setIsSaving(true)
+    const supabase = createClient()
+
+    try {
+      if (isSaved) {
+        await supabase
+          .from('saved_properties')
+          .delete()
+          .eq('user_id', userId)
+          .eq('property_id', propertyId)
+        setIsSaved(false)
+      } else {
+        await supabase
+          .from('saved_properties')
+          .insert({ user_id: userId, property_id: propertyId })
+        setIsSaved(true)
+      }
+    } catch (err) {
+      console.error('Failed to toggle save:', err)
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  return (
+    <button
+      onClick={handleToggle}
+      disabled={isSaving}
+      className={`flex h-8 w-8 items-center justify-center rounded-full backdrop-blur-md transition-all ${isSaved
+        ? 'bg-amber-100 text-amber-600 hover:bg-amber-200 shadow-sm'
+        : 'bg-black/40 text-white hover:bg-black/60 hover:scale-105'
+        }`}
+    >
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 24 24"
+        fill={isSaved ? "currentColor" : "none"}
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className="h-4 w-4"
+      >
+        <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
+      </svg>
+    </button>
   )
 }
 
@@ -113,11 +192,10 @@ export default function PropertyListings({
             transition={{ type: 'spring', stiffness: 200, damping: 20 }}
             key={property.id}
             onClick={() => onPropertySelect(property)}
-            className={`group cursor-pointer overflow-hidden rounded-2xl border transition-all duration-300 ${
-              isSelected
-                ? 'scale-[1.01] border-amber-400 bg-amber-50/40 shadow-[0_0_0_2px_rgba(251,191,36,0.25)] dark:border-amber-500 dark:bg-amber-950/10'
-                : 'border-border bg-card hover:border-muted-foreground/30 hover:-translate-y-0.5 hover:shadow-lg'
-            }`}
+            className={`group cursor-pointer overflow-hidden rounded-2xl border transition-all duration-300 ${isSelected
+              ? 'scale-[1.01] border-amber-400 bg-amber-50/40 shadow-[0_0_0_2px_rgba(251,191,36,0.25)] dark:border-amber-500 dark:bg-amber-950/10'
+              : 'border-border bg-card hover:border-muted-foreground/30 hover:-translate-y-0.5 hover:shadow-lg'
+              }`}
           >
             {/* Thumbnail */}
             <div className="bg-muted relative h-36 w-full overflow-hidden">
@@ -139,10 +217,15 @@ export default function PropertyListings({
 
               {/* Status badge */}
               <div
-                className={`absolute top-2 right-2 flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold backdrop-blur-sm ${status.pill}`}
+                className={`absolute top-2 left-2 flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold backdrop-blur-sm ${status.pill}`}
               >
                 <span className={`h-1.5 w-1.5 rounded-full ${status.dot} animate-pulse`} />
                 {status.label}
+              </div>
+
+              {/* Quick Save overlay (Heart) */}
+              <div className="absolute top-2 right-2 flex items-center justify-center">
+                <SaveButton propertyId={property.id} userId={user?.id} />
               </div>
             </div>
 

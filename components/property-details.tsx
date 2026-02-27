@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import Link from 'next/link'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import MessageDialog from '@/components/message-dialog'
 import {
@@ -46,12 +46,84 @@ interface PropertyDetailsProps {
   user: User | null
 }
 
+import { createClient } from '@/lib/supabase/client'
+import { useToast } from '@/hooks/use-toast'
+
 export default function PropertyDetails({ property, user }: PropertyDetailsProps) {
   const [showMessage, setShowMessage] = useState(false)
   const [activeImageIndex, setActiveImageIndex] = useState(0)
 
+  // Bookmarking state
+  const [isBookmarked, setIsBookmarked] = useState(false)
+  const [isBookmarking, setIsBookmarking] = useState(false)
+  const { toast } = useToast()
+  const supabase = createClient()
+
   const images = property.property_images || property.images || []
   const hasImages = images.length > 0
+
+  // Check initial bookmark status
+  useEffect(() => {
+    const checkBookmark = async () => {
+      if (!user) return
+      const { data } = await supabase
+        .from('saved_properties')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('property_id', property.id)
+        .single()
+
+      if (data) setIsBookmarked(true)
+    }
+    checkBookmark()
+  }, [user, property.id, supabase])
+
+  const toggleBookmark = async () => {
+    if (!user) return
+    setIsBookmarking(true)
+
+    try {
+      if (isBookmarked) {
+        // Remove bookmark
+        const { error } = await supabase
+          .from('saved_properties')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('property_id', property.id)
+
+        if (error) throw error
+        setIsBookmarked(false)
+        toast({
+          title: "Removed from saved",
+          description: "Property removed from your saved list.",
+        })
+      } else {
+        // Add bookmark
+        const { error } = await supabase
+          .from('saved_properties')
+          .insert({
+            user_id: user.id,
+            property_id: property.id,
+          })
+
+        if (error) throw error
+        setIsBookmarked(true)
+        toast({
+          title: "Property saved",
+          description: "You can view this in your saved properties.",
+        })
+      }
+    } catch (error) {
+      console.error('Error toggling bookmark:', error)
+      toast({
+        title: "Error",
+        description: "Could not update saved properties.",
+        variant: "destructive"
+      })
+    } finally {
+      setIsBookmarking(false)
+    }
+  }
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -129,11 +201,10 @@ export default function PropertyDetails({ property, user }: PropertyDetailsProps
                     <button
                       key={idx}
                       onClick={() => setActiveImageIndex(idx)}
-                      className={`relative h-20 w-32 shrink-0 overflow-hidden rounded-lg border-2 transition-all ${
-                        activeImageIndex === idx
-                          ? 'scale-95 border-amber-500 shadow-md'
-                          : 'border-transparent opacity-70 hover:opacity-100'
-                      }`}
+                      className={`relative h-20 w-32 shrink-0 overflow-hidden rounded-lg border-2 transition-all ${activeImageIndex === idx
+                        ? 'scale-95 border-amber-500 shadow-md'
+                        : 'border-transparent opacity-70 hover:opacity-100'
+                        }`}
                     >
                       <Image src={img} alt={`Thumbnail ${idx + 1}`} fill className="object-cover" />
                     </button>
@@ -246,9 +317,14 @@ export default function PropertyDetails({ property, user }: PropertyDetailsProps
                       <MessageCircle className="mr-2 h-4 w-4" />
                       {property.status === 'available' ? 'Send a Message' : 'Not Available'}
                     </Button>
-                    <Button variant="outline" className="w-full">
-                      <Bookmark className="mr-2 h-4 w-4" />
-                      Save Property
+                    <Button
+                      variant={isBookmarked ? "default" : "outline"}
+                      className={`w-full ${isBookmarked ? 'bg-amber-100 text-amber-700 hover:bg-amber-200 border-transparent dark:bg-amber-950/40 dark:text-amber-400 dark:hover:bg-amber-900/60' : ''}`}
+                      onClick={toggleBookmark}
+                      disabled={isBookmarking}
+                    >
+                      <Bookmark className={`mr-2 h-4 w-4 ${isBookmarked ? 'fill-current' : ''}`} />
+                      {isBookmarked ? 'Saved' : 'Save Property'}
                     </Button>
                   </>
                 )}
