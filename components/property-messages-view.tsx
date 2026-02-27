@@ -100,10 +100,11 @@ export default function PropertyMessagesView({
                       <button
                         key={message.id}
                         onClick={() => setSelectedMessage(message)}
-                        className={`w-full rounded-lg border p-3 text-left transition-colors ${selectedMessage?.id === message.id
+                        className={`w-full rounded-lg border p-3 text-left transition-colors ${
+                          selectedMessage?.id === message.id
                             ? 'border-primary bg-primary/5'
                             : 'border-border hover:bg-muted/50'
-                          }`}
+                        }`}
                       >
                         <p className="line-clamp-1 text-sm font-medium">
                           {message.sender?.user_metadata?.full_name || 'Anonymous'}

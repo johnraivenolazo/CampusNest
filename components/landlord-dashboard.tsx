@@ -180,7 +180,7 @@ export default function LandlordDashboard({
                     </div>
                     <div className="flex shrink-0 items-center gap-2">
                       <Button asChild variant="outline" size="sm" className="hidden sm:flex">
-                        <Link href={`/landlord/properties/${property.id}/messages`}>
+                        <Link href="/messages">
                           <MessageSquare className="mr-2 h-4 w-4" />
                           Messages
                         </Link>
@@ -197,7 +197,7 @@ export default function LandlordDashboard({
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="text-muted-foreground hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30"
+                            className="text-muted-foreground hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-950/30"
                             disabled={isDeleting === property.id}
                           >
                             <Trash2 className="h-4 w-4" />
@@ -207,7 +207,8 @@ export default function LandlordDashboard({
                           <AlertDialogHeader>
                             <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                             <AlertDialogDescription>
-                              This will permanently delete "{property.title}" and remove all related data. This action cannot be undone.
+                              This will permanently delete "{property.title}" and remove all related
+                              data. This action cannot be undone.
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>

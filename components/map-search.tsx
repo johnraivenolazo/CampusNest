@@ -99,7 +99,7 @@ export default function MapSearch({ user }: { user: User | null }) {
         setInitialLng((prev) => (prev === 0 ? pos.coords.longitude : prev))
         setUsingGeolocation(true)
       },
-      () => { },
+      () => {},
       { timeout: 8000, maximumAge: 60000 }
     )
   }, [])
@@ -180,12 +180,12 @@ export default function MapSearch({ user }: { user: User | null }) {
     <div className="relative flex h-[calc(100vh-65px)] overflow-hidden">
       {/* ─── Left Sidebar (List) ─── */}
       <div
-        className={`border-border bg-background flex w-full shrink-0 flex-col overflow-hidden border-r md:flex md:w-[360px] ${viewMode === 'list' ? 'flex' : 'hidden'
-          }`}
+        className={`border-border bg-background flex w-full shrink-0 flex-col overflow-hidden border-r md:flex md:w-[360px] ${
+          viewMode === 'list' ? 'flex' : 'hidden'
+        }`}
       >
         {/* ── Search bar row ── */}
         <div className="border-border/60 space-y-3 border-b px-4 pt-4 pb-3">
-
           {/* Search + Filter in one row */}
           <div className="flex items-center gap-2">
             <div className="relative flex-1">
@@ -201,10 +201,11 @@ export default function MapSearch({ user }: { user: User | null }) {
                 type="button"
                 onClick={handleLocateMe}
                 title="Locate me"
-                className={`absolute top-1/2 right-1.5 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-md transition-all ${usingGeolocation
-                  ? 'bg-amber-500/10 text-amber-500 hover:bg-amber-500/20'
-                  : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-                  }`}
+                className={`absolute top-1/2 right-1.5 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-md transition-all ${
+                  usingGeolocation
+                    ? 'bg-amber-500/10 text-amber-500 hover:bg-amber-500/20'
+                    : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                }`}
               >
                 <Navigation className="h-3.5 w-3.5" />
               </button>
@@ -214,10 +215,11 @@ export default function MapSearch({ user }: { user: User | null }) {
             <button
               onClick={filterOpen ? () => setFilterOpen(false) : openFilter}
               title="Toggle filters"
-              className={`relative flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border transition-all duration-200 ${filterOpen || activeFilterCount > 0
-                ? 'border-amber-500 bg-amber-500 text-white shadow-sm'
-                : 'bg-muted/40 text-muted-foreground border-border/60 hover:border-muted-foreground/40 hover:text-foreground'
-                }`}
+              className={`relative flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border transition-all duration-200 ${
+                filterOpen || activeFilterCount > 0
+                  ? 'border-amber-500 bg-amber-500 text-white shadow-sm'
+                  : 'bg-muted/40 text-muted-foreground border-border/60 hover:border-muted-foreground/40 hover:text-foreground'
+              }`}
             >
               <SlidersHorizontal className="h-4 w-4" />
               {activeFilterCount > 0 && (
@@ -242,8 +244,9 @@ export default function MapSearch({ user }: { user: User | null }) {
 
         {/* ── Filter panel (slide-down) ── */}
         <div
-          className={`border-border/60 overflow-hidden border-b transition-all duration-300 ease-in-out ${filterOpen ? 'max-h-[400px] opacity-100' : 'max-h-0 opacity-0'
-            }`}
+          className={`border-border/60 overflow-hidden border-b transition-all duration-300 ease-in-out ${
+            filterOpen ? 'max-h-[400px] opacity-100' : 'max-h-0 opacity-0'
+          }`}
         >
           <div className="bg-muted/20 space-y-5 px-4 py-4">
             {/* Radius */}

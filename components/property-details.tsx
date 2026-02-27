@@ -129,10 +129,11 @@ export default function PropertyDetails({ property, user }: PropertyDetailsProps
                     <button
                       key={idx}
                       onClick={() => setActiveImageIndex(idx)}
-                      className={`relative h-20 w-32 shrink-0 overflow-hidden rounded-lg border-2 transition-all ${activeImageIndex === idx
-                        ? 'scale-95 border-amber-500 shadow-md'
-                        : 'border-transparent opacity-70 hover:opacity-100'
-                        }`}
+                      className={`relative h-20 w-32 shrink-0 overflow-hidden rounded-lg border-2 transition-all ${
+                        activeImageIndex === idx
+                          ? 'scale-95 border-amber-500 shadow-md'
+                          : 'border-transparent opacity-70 hover:opacity-100'
+                      }`}
                     >
                       <Image src={img} alt={`Thumbnail ${idx + 1}`} fill className="object-cover" />
                     </button>

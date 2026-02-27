@@ -113,10 +113,11 @@ export default function PropertyListings({
             transition={{ type: 'spring', stiffness: 200, damping: 20 }}
             key={property.id}
             onClick={() => onPropertySelect(property)}
-            className={`group cursor-pointer overflow-hidden rounded-2xl border transition-all duration-300 ${isSelected
-              ? 'scale-[1.01] border-amber-400 bg-amber-50/40 shadow-[0_0_0_2px_rgba(251,191,36,0.25)] dark:border-amber-500 dark:bg-amber-950/10'
-              : 'border-border bg-card hover:border-muted-foreground/30 hover:-translate-y-0.5 hover:shadow-lg'
-              }`}
+            className={`group cursor-pointer overflow-hidden rounded-2xl border transition-all duration-300 ${
+              isSelected
+                ? 'scale-[1.01] border-amber-400 bg-amber-50/40 shadow-[0_0_0_2px_rgba(251,191,36,0.25)] dark:border-amber-500 dark:bg-amber-950/10'
+                : 'border-border bg-card hover:border-muted-foreground/30 hover:-translate-y-0.5 hover:shadow-lg'
+            }`}
           >
             {/* Thumbnail */}
             <div className="bg-muted relative h-36 w-full overflow-hidden">

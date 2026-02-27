@@ -14,6 +14,8 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { useToast } from '@/hooks/use-toast'
+import { useRouter } from 'next/navigation'
 
 interface MessageDialogProps {
   open: boolean
@@ -35,6 +37,8 @@ export default function MessageDialog({
   const [message, setMessage] = useState('')
   const [phone, setPhone] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const { toast } = useToast()
+  const router = useRouter()
 
   const handleSendMessage = async () => {
     if (!message.trim()) return
@@ -55,12 +59,19 @@ export default function MessageDialog({
       setMessage('')
       setPhone('')
       onOpenChange(false)
+      router.refresh() // Ensure UI knows about the new message if needed
 
-      // Show success message
-      alert('Message sent! The landlord will respond soon.')
+      toast({
+        title: 'Message sent!',
+        description: 'The landlord will respond soon.',
+      })
     } catch (error) {
       console.error('Error sending message:', error)
-      alert('Failed to send message. Please try again.')
+      toast({
+        title: 'Error sending message',
+        description: 'Failed to send message. Please try again.',
+        variant: 'destructive',
+      })
     } finally {
       setIsLoading(false)
     }
