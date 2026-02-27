@@ -39,8 +39,11 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
-  // Redirect legacy /auth/* paths to home page
-  if (request.nextUrl.pathname.startsWith('/auth/')) {
+  // Redirect legacy /auth/* paths to home page (except for auth callback)
+  if (
+    request.nextUrl.pathname.startsWith('/auth/') &&
+    !request.nextUrl.pathname.startsWith('/auth/callback')
+  ) {
     const url = request.nextUrl.clone()
     url.pathname = '/'
     return NextResponse.redirect(url)
