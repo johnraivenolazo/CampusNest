@@ -1,12 +1,10 @@
 'use client'
 
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet'
+import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
-import { useEffect, useCallback, useRef } from 'react'
+import { useEffect, useCallback, useRef, useMemo } from 'react'
 
-// Use locally served icons from /public/ to avoid Edge tracking prevention
-// blocking unpkg.com CDN requests
 const DefaultIcon = L.icon({
   iconUrl: '/marker-icon.png',
   iconRetinaUrl: '/marker-icon-2x.png',
@@ -33,7 +31,7 @@ interface Property {
 interface RealMapProps {
   properties: Property[]
   selectedProperty: Property | null
-  onPropertySelect: (property: Property) => void
+  onPropertySelect: (property: Property | null) => void
   initialLat?: number
   initialLng?: number
 }
@@ -132,14 +130,16 @@ export default function RealMap({
   // the map when properties load later.
   const lat0 = Number(initialLat)
   const lng0 = Number(initialLng)
-  const initialCenter: [number, number] = [
+
+  const initialCenter: [number, number] = useMemo(() => [
     Number.isFinite(lat0) && lat0 !== 0 ? lat0 : 14.5995,
     Number.isFinite(lng0) && lng0 !== 0 ? lng0 : 120.9842,
-  ]
+  ], [lat0, lng0])
 
   return (
     <div className="relative h-full w-full" style={{ minHeight: '400px' }}>
       <MapContainer
+        key="main-map"
         center={initialCenter}
         zoom={15}
         style={{ height: '100%', width: '100%', zIndex: 0 }}
@@ -162,15 +162,7 @@ export default function RealMap({
               eventHandlers={{
                 click: () => onPropertySelect(property),
               }}
-            >
-              <Popup>
-                <div className="p-1">
-                  <h3 className="text-sm font-bold">{property.title}</h3>
-                  <p className="text-primary text-xs font-bold">${property.price_per_month}/mo</p>
-                  <p className="text-muted-foreground text-[10px]">{property.address}</p>
-                </div>
-              </Popup>
-            </Marker>
+            />
           ) : null
         )}
       </MapContainer>

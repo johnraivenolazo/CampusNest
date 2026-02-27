@@ -6,8 +6,9 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import Link from 'next/link'
 import { useState } from 'react'
+import Image from 'next/image'
 import MessageDialog from '@/components/message-dialog'
-import { CheckCircle2, MessageCircle, Bookmark, Bell, ArrowRight } from 'lucide-react'
+import { CheckCircle2, MessageCircle, Bookmark, Bell, ArrowRight, ChevronLeft, ChevronRight, Image as ImageIcon } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils.currency'
 import PropertyReviews from '@/components/property-reviews'
 
@@ -38,6 +39,10 @@ interface PropertyDetailsProps {
 
 export default function PropertyDetails({ property, user }: PropertyDetailsProps) {
   const [showMessage, setShowMessage] = useState(false)
+  const [activeImageIndex, setActiveImageIndex] = useState(0)
+
+  const images = property.property_images || property.images || []
+  const hasImages = images.length > 0
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -62,14 +67,68 @@ export default function PropertyDetails({ property, user }: PropertyDetailsProps
         <div className="grid gap-6 md:grid-cols-3">
           {/* Left - Main Content */}
           <div className="space-y-6 md:col-span-2">
-            {/* Images */}
-            <div className="bg-muted flex h-96 items-center justify-center rounded-lg">
-              <div className="text-center">
-                <p className="text-muted-foreground">Property images go here</p>
-                <p className="text-muted-foreground mt-2 text-sm">
-                  {(property.property_images || property.images)?.length || 0} photos available
-                </p>
+            {/* Images Gallery */}
+            <div className="space-y-4">
+              <div className="bg-muted relative h-[450px] overflow-hidden rounded-2xl border">
+                {hasImages ? (
+                  <>
+                    <Image
+                      src={images[activeImageIndex]}
+                      alt={`${property.title} - Image ${activeImageIndex + 1}`}
+                      fill
+                      className="object-cover transition-opacity duration-500"
+                      priority
+                    />
+
+                    {images.length > 1 && (
+                      <>
+                        <button
+                          onClick={() => setActiveImageIndex((prev) => (prev > 0 ? prev - 1 : images.length - 1))}
+                          className="absolute left-4 top-1/2 -translate-y-1/2 rounded-full bg-black/30 p-2 text-white backdrop-blur-md transition-all hover:bg-black/50"
+                        >
+                          <ChevronLeft className="h-6 w-6" />
+                        </button>
+                        <button
+                          onClick={() => setActiveImageIndex((prev) => (prev < images.length - 1 ? prev + 1 : 0))}
+                          className="absolute right-4 top-1/2 -translate-y-1/2 rounded-full bg-black/30 p-2 text-white backdrop-blur-md transition-all hover:bg-black/50"
+                        >
+                          <ChevronRight className="h-6 w-6" />
+                        </button>
+
+                        <div className="absolute bottom-4 right-4 rounded-full bg-black/50 px-3 py-1 text-xs font-medium text-white backdrop-blur-md">
+                          {activeImageIndex + 1} / {images.length}
+                        </div>
+                      </>
+                    )}
+                  </>
+                ) : (
+                  <div className="flex flex-col items-center justify-center h-full text-muted-foreground italic">
+                    <ImageIcon className="mb-2 h-12 w-12 opacity-20" />
+                    <p>No images available for this property</p>
+                  </div>
+                )}
               </div>
+
+              {/* Thumbnails */}
+              {images.length > 1 && (
+                <div className="scrollbar-hide flex gap-3 overflow-x-auto pb-2">
+                  {images.map((img, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => setActiveImageIndex(idx)}
+                      className={`relative h-20 w-32 shrink-0 overflow-hidden rounded-lg border-2 transition-all ${activeImageIndex === idx ? 'border-amber-500 scale-95 shadow-md' : 'border-transparent opacity-70 hover:opacity-100'
+                        }`}
+                    >
+                      <Image
+                        src={img}
+                        alt={`Thumbnail ${idx + 1}`}
+                        fill
+                        className="object-cover"
+                      />
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Title and Basic Info */}
