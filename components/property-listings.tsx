@@ -71,14 +71,8 @@ function AmenityPill({ label }: { label: string }) {
 function EmptyState() {
   return (
     <div className="flex flex-col items-center justify-center px-4 py-14 text-center">
-      <div className="to-muted border-border/50 mb-4 flex h-16 w-16 items-center justify-center rounded-2xl border bg-linear-to-br from-amber-50 shadow-inner">
-        <Home className="h-7 w-7 text-amber-400" />
-      </div>
-      <p className="text-foreground text-lg font-bold tracking-tight">
-        The perfect nest is worth the wait
-      </p>
       <p className="text-muted-foreground mt-2 max-w-[220px] text-sm leading-relaxed">
-        We couldn&apos;t find a match, but keep exploring — your sanctuary is out there.
+        No properties found.
       </p>
     </div>
   )
