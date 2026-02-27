@@ -54,7 +54,7 @@ export default function Header({ user }: { user: User | null }) {
               Campus<span className="text-amber-500">Nest</span>
             </span>
             <span className="text-muted-foreground hidden text-[10px] font-medium tracking-widest uppercase sm:block">
-              Campus Living
+              Find Your Next Stay
             </span>
           </div>
         </Link>
