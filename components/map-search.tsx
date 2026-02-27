@@ -185,13 +185,6 @@ export default function MapSearch({ user }: { user: User | null }) {
       >
         {/* ── Search bar row ── */}
         <div className="border-border/60 space-y-3 border-b px-4 pt-4 pb-3">
-          {/* Title row */}
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-foreground text-base font-bold">Find Housing</h2>
-              <p className="text-muted-foreground text-xs">Near your campus</p>
-            </div>
-          </div>
 
           {/* Search + Filter in one row */}
           <div className="flex items-center gap-2">
