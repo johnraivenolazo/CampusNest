@@ -23,11 +23,11 @@ export default async function SavedPropertiesPage() {
     // 2. Verify user is a student (optional but good practice)
     const { data: profile } = await supabase
         .from('profiles')
-        .select('role')
+        .select('user_type')
         .eq('id', user.id)
         .single()
 
-    if (profile?.role !== 'student') {
+    if (profile?.user_type !== 'student') {
         redirect('/')
     }
 
