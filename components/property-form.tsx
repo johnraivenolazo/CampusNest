@@ -242,7 +242,7 @@ export default function PropertyForm({ user, initialData, propertyId }: Property
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="price">Monthly Price ($)</Label>
+              <Label htmlFor="price">Monthly Price</Label>
               <Input
                 id="price"
                 name="price"
