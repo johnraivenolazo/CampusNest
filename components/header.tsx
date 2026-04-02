@@ -83,10 +83,11 @@ export default function Header({ user }: { user: User | null }) {
               {isLandlord && (
                 <Link
                   href="/landlord/dashboard"
-                  className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors duration-150 ${pathname?.startsWith('/landlord')
-                    ? 'bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-                    }`}
+                  className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors duration-150 ${
+                    pathname?.startsWith('/landlord')
+                      ? 'bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                  }`}
                 >
                   <LayoutDashboard className="h-3.5 w-3.5" />
                   My Listings
@@ -95,16 +96,16 @@ export default function Header({ user }: { user: User | null }) {
               {isStudent && (
                 <Link
                   href="/student/saved"
-                  className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors duration-150 ${pathname?.startsWith('/student')
-                    ? 'bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-                    }`}
+                  className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors duration-150 ${
+                    pathname?.startsWith('/student')
+                      ? 'bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                  }`}
                 >
                   <Bookmark className="h-3.5 w-3.5" />
                   Saved
                 </Link>
               )}
-
 
               {/* User menu */}
               <div className="relative ml-2">

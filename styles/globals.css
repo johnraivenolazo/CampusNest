@@ -123,3 +123,14 @@
     @apply bg-background text-foreground;
   }
 }
+
+.password-input-no-native-reveal::-ms-reveal,
+.password-input-no-native-reveal::-ms-clear {
+  display: none;
+}
+
+.password-input-no-native-reveal::-webkit-credentials-auto-fill-button {
+  visibility: hidden;
+  display: none !important;
+  pointer-events: none;
+}

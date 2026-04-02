@@ -1,12 +1,24 @@
 'use client'
 
 import { User } from '@supabase/supabase-js'
-import { Button } from '@/components/ui/button'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { MapPin, Home, Wifi, Car, ShieldCheck, Zap, Droplets, Wind } from 'lucide-react'
+import {
+  Car,
+  Camera,
+  ChevronLeft,
+  ChevronRight,
+  Droplets,
+  Image as ImageIcon,
+  MapPin,
+  ShieldCheck,
+  Wifi,
+  Wind,
+  Zap,
+} from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import { formatCurrency } from '@/lib/utils.currency'
 import { createClient } from '@/lib/supabase/client'
 
@@ -49,7 +61,6 @@ const STATUS = {
   },
 }
 
-// Map common amenity strings to icons
 const AMENITY_ICONS: Record<string, React.ReactNode> = {
   wifi: <Wifi className="h-3 w-3" />,
   parking: <Car className="h-3 w-3" />,
@@ -64,11 +75,19 @@ function AmenityPill({ label }: { label: string }) {
   const icon = AMENITY_ICONS[normalized] || null
 
   return (
-    <div className="flex shrink-0 items-center justify-center gap-1.5 rounded-full border bg-background/50 px-2 py-0.5 text-[10px] font-medium text-muted-foreground whitespace-nowrap shadow-sm backdrop-blur-md transition-colors hover:bg-muted/50">
+    <div className="bg-background/50 text-muted-foreground hover:bg-muted/50 flex shrink-0 items-center justify-center gap-1.5 rounded-full border px-2 py-0.5 text-[10px] font-medium whitespace-nowrap shadow-sm backdrop-blur-md transition-colors">
       {icon && <span className="opacity-70">{icon}</span>}
       <span>{label}</span>
     </div>
   )
+}
+
+function getPropertyImages(property: Property) {
+  const sourceImages = property.property_images?.length
+    ? property.property_images
+    : (property.images ?? [])
+
+  return sourceImages.filter(Boolean)
 }
 
 function SaveButton({ propertyId, userId }: { propertyId: string; userId?: string | undefined }) {
@@ -77,6 +96,7 @@ function SaveButton({ propertyId, userId }: { propertyId: string; userId?: strin
 
   useEffect(() => {
     if (!userId) return
+
     const checkSave = async () => {
       const supabase = createClient()
       const { data } = await supabase
@@ -88,15 +108,14 @@ function SaveButton({ propertyId, userId }: { propertyId: string; userId?: strin
 
       if (data) setIsSaved(true)
     }
+
     checkSave()
   }, [userId, propertyId])
 
   const handleToggle = async (e: React.MouseEvent) => {
-    e.stopPropagation() // Prevent triggering the card click
-    if (!userId) {
-      // Could show a toast telling them to log in here
-      return
-    }
+    e.stopPropagation()
+
+    if (!userId) return
 
     setIsSaving(true)
     const supabase = createClient()
@@ -110,9 +129,7 @@ function SaveButton({ propertyId, userId }: { propertyId: string; userId?: strin
           .eq('property_id', propertyId)
         setIsSaved(false)
       } else {
-        await supabase
-          .from('saved_properties')
-          .insert({ user_id: userId, property_id: propertyId })
+        await supabase.from('saved_properties').insert({ user_id: userId, property_id: propertyId })
         setIsSaved(true)
       }
     } catch (err) {
@@ -126,15 +143,16 @@ function SaveButton({ propertyId, userId }: { propertyId: string; userId?: strin
     <button
       onClick={handleToggle}
       disabled={isSaving}
-      className={`flex h-8 w-8 items-center justify-center rounded-full backdrop-blur-md transition-all ${isSaved
-        ? 'bg-amber-100 text-amber-600 hover:bg-amber-200 shadow-sm'
-        : 'bg-black/40 text-white hover:bg-black/60 hover:scale-105'
-        }`}
+      className={`flex h-8 w-8 items-center justify-center rounded-full backdrop-blur-md transition-all ${
+        isSaved
+          ? 'bg-amber-100 text-amber-600 shadow-sm hover:bg-amber-200'
+          : 'bg-black/40 text-white hover:scale-105 hover:bg-black/60'
+      }`}
     >
       <svg
         xmlns="http://www.w3.org/2000/svg"
         viewBox="0 0 24 24"
-        fill={isSaved ? "currentColor" : "none"}
+        fill={isSaved ? 'currentColor' : 'none'}
         stroke="currentColor"
         strokeWidth="2"
         strokeLinecap="round"
@@ -154,6 +172,191 @@ function EmptyState() {
         No properties found.
       </p>
     </div>
+  )
+}
+
+interface PropertyCardProps {
+  property: Property
+  isSelected: boolean
+  onPropertySelect: (property: Property) => void
+  userId?: string
+}
+
+function PropertyCard({ property, isSelected, onPropertySelect, userId }: PropertyCardProps) {
+  const [activeImageIndex, setActiveImageIndex] = useState(0)
+  const status = STATUS[property.status] ?? STATUS.available
+  const images = getPropertyImages(property)
+  const hasMultipleImages = images.length > 1
+  const activeImage = images[activeImageIndex]
+
+  return (
+    <motion.div
+      variants={{
+        hidden: { opacity: 0, y: 10 },
+        visible: { opacity: 1, y: 0 },
+      }}
+      transition={{ type: 'spring', stiffness: 200, damping: 20 }}
+      onClick={() => onPropertySelect(property)}
+      className={`group cursor-pointer overflow-hidden rounded-2xl border transition-all duration-300 ${
+        isSelected
+          ? 'scale-[1.01] border-amber-400 bg-amber-50/40 shadow-[0_0_0_2px_rgba(251,191,36,0.25)] dark:border-amber-500 dark:bg-amber-950/10'
+          : 'border-border bg-card hover:border-muted-foreground/30 hover:-translate-y-0.5 hover:shadow-lg'
+      }`}
+    >
+      <div className="bg-muted relative h-40 w-full overflow-hidden">
+        {activeImage ? (
+          <>
+            <Image
+              src={activeImage}
+              alt={`${property.title} photo ${activeImageIndex + 1}`}
+              fill
+              className="object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+            />
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/65 via-black/20 to-transparent" />
+          </>
+        ) : (
+          <div className="from-muted via-muted to-muted/60 flex h-full w-full flex-col items-center justify-center gap-2 bg-linear-to-br">
+            <ImageIcon className="text-muted-foreground/25 h-8 w-8" />
+            <span className="text-muted-foreground/40 text-[10px] font-medium tracking-wider uppercase">
+              No photo
+            </span>
+          </div>
+        )}
+
+        <div
+          className={`absolute top-2 left-2 flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold backdrop-blur-sm ${status.pill}`}
+        >
+          <span className={`h-1.5 w-1.5 rounded-full ${status.dot} animate-pulse`} />
+          {status.label}
+        </div>
+
+        <div className="absolute top-2 right-2 flex items-center gap-2">
+          {images.length > 0 && (
+            <div className="flex items-center gap-1 rounded-full bg-black/50 px-2 py-1 text-[10px] font-semibold text-white backdrop-blur-md">
+              <Camera className="h-3 w-3" />
+              {images.length}
+            </div>
+          )}
+          <SaveButton propertyId={property.id} userId={userId} />
+        </div>
+
+        {hasMultipleImages && (
+          <>
+            <button
+              type="button"
+              aria-label="Show previous photo"
+              onClick={(e) => {
+                e.stopPropagation()
+                setActiveImageIndex((prev) => (prev > 0 ? prev - 1 : images.length - 1))
+              }}
+              className="absolute top-1/2 left-3 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full border border-white/15 bg-black/45 text-white opacity-100 backdrop-blur-md transition hover:bg-black/65 md:opacity-0 md:group-hover:opacity-100"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              aria-label="Show next photo"
+              onClick={(e) => {
+                e.stopPropagation()
+                setActiveImageIndex((prev) => (prev < images.length - 1 ? prev + 1 : 0))
+              }}
+              className="absolute top-1/2 right-3 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full border border-white/15 bg-black/45 text-white opacity-100 backdrop-blur-md transition hover:bg-black/65 md:opacity-0 md:group-hover:opacity-100"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+            <div className="absolute inset-x-0 bottom-3 flex items-center justify-center gap-1.5 px-4">
+              {images.map((image, index) => (
+                <button
+                  key={`${property.id}-${image}-${index}`}
+                  type="button"
+                  aria-label={`Show photo ${index + 1}`}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setActiveImageIndex(index)
+                  }}
+                  className={`h-1.5 rounded-full transition-all ${
+                    activeImageIndex === index
+                      ? 'w-5 bg-white'
+                      : 'w-1.5 bg-white/50 hover:bg-white/80'
+                  }`}
+                />
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+
+      <div className="space-y-2.5 p-3.5">
+        <div>
+          <div className="flex items-start justify-between gap-2">
+            <h3 className="text-foreground line-clamp-1 text-sm leading-snug font-bold">
+              {property.title}
+            </h3>
+            <div className="flex shrink-0 items-center gap-1 rounded-md bg-amber-50 px-1.5 py-0.5 text-[10px] font-bold text-amber-600 dark:bg-amber-500/10 dark:text-amber-400">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+                className="h-3 w-3"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.007 5.404.433c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.433 2.082-5.006z"
+                  clipRule="evenodd"
+                />
+              </svg>
+              {property.average_rating ? property.average_rating.toFixed(1) : 'New'}
+            </div>
+          </div>
+          <div className="mt-0.5 flex items-center gap-1">
+            <MapPin className="text-muted-foreground h-3 w-3 shrink-0" />
+            <p className="text-muted-foreground line-clamp-1 text-xs">{property.address}</p>
+          </div>
+        </div>
+
+        {property.amenities?.length > 0 && (
+          <div className="flex flex-wrap gap-1">
+            {property.amenities.slice(0, 3).map((amenity) => (
+              <AmenityPill key={amenity} label={amenity} />
+            ))}
+            {property.amenities.length > 3 && (
+              <span className="bg-muted text-muted-foreground border-border/50 rounded-full border px-2 py-0.5 text-[10px] font-medium">
+                +{property.amenities.length - 3} more
+              </span>
+            )}
+          </div>
+        )}
+
+        <div className="border-border flex items-center justify-between border-t pt-2">
+          <div className="flex items-baseline gap-0.5">
+            <span className="text-xl leading-none font-extrabold text-amber-500">
+              {formatCurrency(property.price_per_month, 'en-PH', 'PHP')}
+            </span>
+            <span className="text-muted-foreground text-xs font-medium">/mo</span>
+          </div>
+          <Button
+            size="sm"
+            className="h-7 gap-1 bg-amber-500 px-3 text-xs font-semibold text-white shadow-sm hover:bg-amber-600"
+            onClick={(e) => {
+              e.stopPropagation()
+              onPropertySelect(property)
+            }}
+          >
+            Details
+          </Button>
+        </div>
+
+        {!userId && property.status === 'available' && (
+          <Link
+            href="/"
+            onClick={(e) => e.stopPropagation()}
+            className="text-muted-foreground block text-center text-[10px] transition-colors hover:text-amber-500"
+          >
+            Sign up free to inquire →
+          </Link>
+        )}
+      </div>
+    </motion.div>
   )
 }
 
@@ -178,135 +381,15 @@ export default function PropertyListings({
         },
       }}
     >
-      {properties.map((property) => {
-        const status = STATUS[property.status] ?? STATUS.available
-        const img = property.property_images?.[0] ?? property.images?.[0]
-        const isSelected = selectedProperty?.id === property.id
-
-        return (
-          <motion.div
-            variants={{
-              hidden: { opacity: 0, y: 10 },
-              visible: { opacity: 1, y: 0 },
-            }}
-            transition={{ type: 'spring', stiffness: 200, damping: 20 }}
-            key={property.id}
-            onClick={() => onPropertySelect(property)}
-            className={`group cursor-pointer overflow-hidden rounded-2xl border transition-all duration-300 ${isSelected
-              ? 'scale-[1.01] border-amber-400 bg-amber-50/40 shadow-[0_0_0_2px_rgba(251,191,36,0.25)] dark:border-amber-500 dark:bg-amber-950/10'
-              : 'border-border bg-card hover:border-muted-foreground/30 hover:-translate-y-0.5 hover:shadow-lg'
-              }`}
-          >
-            {/* Thumbnail */}
-            <div className="bg-muted relative h-36 w-full overflow-hidden">
-              {img ? (
-                <Image
-                  src={img}
-                  alt={property.title}
-                  fill
-                  className="object-cover transition-transform duration-500 group-hover:scale-105"
-                />
-              ) : (
-                <div className="from-muted via-muted to-muted/60 flex h-full w-full flex-col items-center justify-center gap-2 bg-linear-to-br">
-                  <Home className="text-muted-foreground/25 h-8 w-8" />
-                  <span className="text-muted-foreground/40 text-[10px] font-medium tracking-wider uppercase">
-                    No photo
-                  </span>
-                </div>
-              )}
-
-              {/* Status badge */}
-              <div
-                className={`absolute top-2 left-2 flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold backdrop-blur-sm ${status.pill}`}
-              >
-                <span className={`h-1.5 w-1.5 rounded-full ${status.dot} animate-pulse`} />
-                {status.label}
-              </div>
-
-              {/* Quick Save overlay (Heart) */}
-              <div className="absolute top-2 right-2 flex items-center justify-center">
-                <SaveButton propertyId={property.id} userId={user?.id} />
-              </div>
-            </div>
-
-            {/* Body */}
-            <div className="space-y-2.5 p-3.5">
-              {/* Title + address + rating */}
-              <div>
-                <div className="flex items-start justify-between">
-                  <h3 className="text-foreground line-clamp-1 text-sm leading-snug font-bold">
-                    {property.title}
-                  </h3>
-                  <div className="flex shrink-0 items-center gap-1 rounded-md bg-amber-50 px-1.5 py-0.5 text-[10px] font-bold text-amber-600 dark:bg-amber-500/10 dark:text-amber-400">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      viewBox="0 0 24 24"
-                      fill="currentColor"
-                      className="h-3 w-3"
-                    >
-                      <path
-                        fillRule="evenodd"
-                        d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.007 5.404.433c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.433 2.082-5.006z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
-                    {property.average_rating ? property.average_rating.toFixed(1) : 'New'}
-                  </div>
-                </div>
-                <div className="mt-0.5 flex items-center gap-1">
-                  <MapPin className="text-muted-foreground h-3 w-3 shrink-0" />
-                  <p className="text-muted-foreground line-clamp-1 text-xs">{property.address}</p>
-                </div>
-              </div>
-
-              {/* Amenity pills */}
-              {property.amenities?.length > 0 && (
-                <div className="flex flex-wrap gap-1">
-                  {property.amenities.slice(0, 3).map((a) => (
-                    <AmenityPill key={a} label={a} />
-                  ))}
-                  {property.amenities.length > 3 && (
-                    <span className="bg-muted text-muted-foreground border-border/50 rounded-full border px-2 py-0.5 text-[10px] font-medium">
-                      +{property.amenities.length - 3} more
-                    </span>
-                  )}
-                </div>
-              )}
-
-              {/* Price + CTA */}
-              <div className="border-border flex items-center justify-between border-t pt-2">
-                <div className="flex items-baseline gap-0.5">
-                  <span className="text-xl leading-none font-extrabold text-amber-500">
-                    {formatCurrency(property.price_per_month, 'en-PH', 'PHP')}
-                  </span>
-                  <span className="text-muted-foreground text-xs font-medium">/mo</span>
-                </div>
-                <Button
-                  size="sm"
-                  className="h-7 gap-1 bg-amber-500 px-3 text-xs font-semibold text-white shadow-sm hover:bg-amber-600"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    onPropertySelect(property)
-                  }}
-                >
-                  Details
-                </Button>
-              </div>
-
-              {/* Guest nudge — shown instead of contact button */}
-              {!user && property.status === 'available' && (
-                <Link
-                  href="/"
-                  onClick={(e) => e.stopPropagation()}
-                  className="text-muted-foreground block text-center text-[10px] transition-colors hover:text-amber-500"
-                >
-                  Sign up free to inquire →
-                </Link>
-              )}
-            </div>
-          </motion.div>
-        )
-      })}
+      {properties.map((property) => (
+        <PropertyCard
+          key={property.id}
+          property={property}
+          isSelected={selectedProperty?.id === property.id}
+          onPropertySelect={onPropertySelect}
+          userId={user?.id}
+        />
+      ))}
     </motion.div>
   )
 }

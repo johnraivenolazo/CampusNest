@@ -1,7 +1,7 @@
 'use client'
 
 import { User } from '@supabase/supabase-js'
-import { useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
@@ -44,6 +44,40 @@ interface Conversation {
   lastMessageAt: string
 }
 
+function buildConversations(messages: Message[], currentUserId: string) {
+  const conversationsMap = new Map<string, Conversation>()
+
+  messages.forEach((msg) => {
+    const isSender = msg.sender_id === currentUserId
+    const otherUser = isSender ? msg.receiver : msg.sender
+    if (!otherUser) return
+
+    const propertyId = msg.property_id || 'no-property'
+    const conversationId = `${propertyId}_${otherUser.id}`
+
+    if (!conversationsMap.has(conversationId)) {
+      conversationsMap.set(conversationId, {
+        id: conversationId,
+        property: msg.properties || null,
+        otherUser,
+        messages: [],
+        lastMessageAt: msg.created_at,
+      })
+    }
+
+    const conversation = conversationsMap.get(conversationId)!
+    conversation.messages.push(msg)
+
+    if (new Date(msg.created_at) > new Date(conversation.lastMessageAt)) {
+      conversation.lastMessageAt = msg.created_at
+    }
+  })
+
+  return Array.from(conversationsMap.values()).sort(
+    (a, b) => new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime()
+  )
+}
+
 export default function InboxView({
   initialMessages,
   currentUser,
@@ -56,38 +90,8 @@ export default function InboxView({
   onClose?: () => void
 }) {
   const { toast } = useToast()
-
-  // Group messages into conversations
-  const conversationsMap = new Map<string, Conversation>()
-
-  initialMessages.forEach((msg) => {
-    const isSender = msg.sender_id === currentUser.id
-    const otherUser = isSender ? msg.receiver : msg.sender
-    if (!otherUser) return
-
-    const propertyId = msg.property_id || 'no-property'
-    const conversationId = `${propertyId}_${otherUser.id}`
-
-    if (!conversationsMap.has(conversationId)) {
-      conversationsMap.set(conversationId, {
-        id: conversationId,
-        property: msg.properties || null,
-        otherUser: otherUser,
-        messages: [],
-        lastMessageAt: msg.created_at,
-      })
-    }
-
-    const conv = conversationsMap.get(conversationId)!
-    conv.messages.push(msg)
-    if (new Date(msg.created_at) > new Date(conv.lastMessageAt)) {
-      conv.lastMessageAt = msg.created_at
-    }
-  })
-
-  const conversations = Array.from(conversationsMap.values()).sort(
-    (a, b) => new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime()
-  )
+  const [localMessages, setLocalMessages] = useState<Message[]>(initialMessages)
+  const conversations = buildConversations(localMessages, currentUser.id)
 
   const [activeConversationId, setActiveConversationId] = useState<string | null>(
     !isOverlay && conversations.length > 0 ? conversations[0].id : null
@@ -97,7 +101,87 @@ export default function InboxView({
   )
   const [replyText, setReplyText] = useState('')
   const [isSending, setIsSending] = useState(false)
-  const [localMessages, setLocalMessages] = useState<Message[]>(initialMessages)
+
+  const fetchMessages = useCallback(async () => {
+    const supabase = createClient()
+    const { data, error } = await supabase
+      .from('messages')
+      .select(
+        `
+        id, content, created_at, sender_id, receiver_id, property_id, read,
+        properties (id, title, property_images),
+        sender:profiles!messages_sender_id_fkey (id, full_name, email, profile_image_url),
+        receiver:profiles!messages_receiver_id_fkey (id, full_name, email, profile_image_url)
+      `
+      )
+      .or(`sender_id.eq.${currentUser.id},receiver_id.eq.${currentUser.id}`)
+      .order('created_at', { ascending: false })
+
+    if (error) throw error
+    setLocalMessages((data || []) as Message[])
+  }, [currentUser.id])
+
+  useEffect(() => {
+    setLocalMessages(initialMessages)
+  }, [initialMessages])
+
+  useEffect(() => {
+    if (conversations.length === 0) {
+      setActiveConversationId(null)
+      setMobileView('list')
+      return
+    }
+
+    const hasActiveConversation = activeConversationId
+      ? conversations.some((conversation) => conversation.id === activeConversationId)
+      : false
+
+    if (!hasActiveConversation) {
+      setActiveConversationId(conversations[0].id)
+      if (!isOverlay) {
+        setMobileView('chat')
+      }
+    }
+  }, [activeConversationId, conversations, isOverlay])
+
+  useEffect(() => {
+    const supabase = createClient()
+    const refreshMessages = async () => {
+      try {
+        await fetchMessages()
+      } catch (error) {
+        console.error('Failed to refresh messages:', error)
+      }
+    }
+
+    const channel = supabase
+      .channel(`messages-inbox-${currentUser.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'messages',
+          filter: `receiver_id=eq.${currentUser.id}`,
+        },
+        refreshMessages
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'messages',
+          filter: `sender_id=eq.${currentUser.id}`,
+        },
+        refreshMessages
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [currentUser.id, fetchMessages])
 
   const activeConversationInfo = conversations.find((c) => c.id === activeConversationId)
 
@@ -130,16 +214,18 @@ export default function InboxView({
           property_id: propertyId || null,
           content: replyText,
         })
-        .select(`
+        .select(
+          `
           id, content, created_at, sender_id, receiver_id, property_id, read,
           properties (id, title, property_images),
           sender:profiles!messages_sender_id_fkey (id, full_name, email, profile_image_url),
           receiver:profiles!messages_receiver_id_fkey (id, full_name, email, profile_image_url)
-        `)
+        `
+        )
         .single()
 
       if (error) throw error
-      setLocalMessages((prev) => [...prev, data as any])
+      setLocalMessages((prev) => [...prev, data as Message])
       setReplyText('')
     } catch (error) {
       console.error('Failed to send reply:', error)
@@ -159,12 +245,12 @@ export default function InboxView({
   }
 
   const containerClasses = isOverlay
-    ? "flex h-full flex-col overflow-hidden bg-background"
-    : "mx-auto max-w-6xl p-4 md:p-8"
+    ? 'flex h-full flex-col overflow-hidden bg-background'
+    : 'mx-auto max-w-6xl p-4 md:p-8'
 
   const gridClasses = isOverlay
-    ? "flex flex-1 overflow-hidden"
-    : "grid h-[700px] gap-6 md:grid-cols-3"
+    ? 'flex flex-1 overflow-hidden'
+    : 'grid h-[700px] gap-6 md:grid-cols-3'
 
   return (
     <div className={containerClasses}>
@@ -172,26 +258,38 @@ export default function InboxView({
 
       <div className={gridClasses}>
         {/* Sidebar / Conversation List */}
-        <Card className={`hide-scrollbar flex flex-col overflow-hidden border-none shadow-none md:border md:shadow-sm ${isOverlay ? 'w-full' : 'md:col-span-1'
-          } ${mobileView === 'chat' && !isOverlay ? 'hidden md:flex' : ''} ${mobileView === 'chat' && isOverlay ? 'hidden' : 'flex'
-          }`}>
-          {!isOverlay && <div className="bg-muted/30 shrink-0 border-b p-4 font-semibold">Conversations</div>}
+        <Card
+          className={`hide-scrollbar flex flex-col overflow-hidden border-none shadow-none md:border md:shadow-sm ${
+            isOverlay ? 'w-full' : 'md:col-span-1'
+          } ${mobileView === 'chat' && !isOverlay ? 'hidden md:flex' : ''} ${
+            mobileView === 'chat' && isOverlay ? 'hidden' : 'flex'
+          }`}
+        >
+          {!isOverlay && (
+            <div className="bg-muted/30 shrink-0 border-b p-4 font-semibold">Conversations</div>
+          )}
           <div className="flex-1 overflow-y-auto">
             {conversations.length === 0 ? (
               <div className="text-muted-foreground p-8 text-center text-sm">No messages yet.</div>
             ) : (
               conversations.map((conv) => {
                 const isActive = activeConversationId === conv.id
-                const otherName = conv.otherUser?.full_name || conv.otherUser?.email?.split('@')[0] || 'Unknown User'
+                const otherName =
+                  conv.otherUser?.full_name ||
+                  conv.otherUser?.email?.split('@')[0] ||
+                  'Unknown User'
                 const propThumb = conv.property?.property_images?.[0]
-                const latestMsg = conv.messages.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]
+                const latestMsg = conv.messages.sort(
+                  (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+                )[0]
 
                 return (
                   <button
                     key={conv.id}
                     onClick={() => handleSelectConversation(conv.id)}
-                    className={`flex w-full items-center gap-3 border-b p-4 text-left transition-colors ${isActive ? 'bg-amber-50 dark:bg-amber-950/20' : 'hover:bg-muted/50'
-                      }`}
+                    className={`flex w-full items-center gap-3 border-b p-4 text-left transition-colors ${
+                      isActive ? 'bg-amber-50 dark:bg-amber-950/20' : 'hover:bg-muted/50'
+                    }`}
                   >
                     <div className="bg-muted relative flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-lg">
                       {propThumb ? (
@@ -200,7 +298,7 @@ export default function InboxView({
                         <Building className="text-muted-foreground h-5 w-5" />
                       )}
                     </div>
-                    <div className="overflow-hidden">
+                    <div className="min-w-0 flex-1 overflow-hidden">
                       <p className="truncate text-sm font-semibold">{otherName}</p>
                       <p className="text-muted-foreground truncate text-xs font-medium">
                         {conv.property?.title || 'No Property'}
@@ -217,9 +315,13 @@ export default function InboxView({
         </Card>
 
         {/* Main Chat Area */}
-        <Card className={`flex flex-col overflow-hidden border-none shadow-none md:border md:shadow-sm ${isOverlay ? 'w-full' : 'md:col-span-2'
-          } ${mobileView === 'list' && !isOverlay ? 'hidden md:flex' : ''} ${mobileView === 'list' && isOverlay ? 'hidden' : 'flex'
-          }`}>
+        <Card
+          className={`flex flex-col overflow-hidden border-none shadow-none md:border md:shadow-sm ${
+            isOverlay ? 'w-full' : 'md:col-span-2'
+          } ${mobileView === 'list' && !isOverlay ? 'hidden md:flex' : ''} ${
+            mobileView === 'list' && isOverlay ? 'hidden' : 'flex'
+          }`}
+        >
           {activeConversationInfo ? (
             <>
               {/* Chat Header */}
@@ -231,21 +333,46 @@ export default function InboxView({
                     className="md:hidden"
                     onClick={() => setMobileView('list')}
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6" /></svg>
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="18"
+                      height="18"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="m15 18-6-6 6-6" />
+                    </svg>
                   </Button>
                 )}
                 <div className="bg-muted relative h-9 w-9 shrink-0 overflow-hidden rounded-full border">
                   {activeConversationInfo.otherUser?.profile_image_url ? (
-                    <Image src={activeConversationInfo.otherUser.profile_image_url} alt="User" fill className="object-cover" />
+                    <Image
+                      src={activeConversationInfo.otherUser.profile_image_url}
+                      alt="User"
+                      fill
+                      className="object-cover"
+                    />
                   ) : (
                     <div className="flex h-full w-full items-center justify-center bg-amber-100 text-sm font-bold text-amber-700">
-                      {(activeConversationInfo.otherUser?.full_name || activeConversationInfo.otherUser?.email || 'U').charAt(0).toUpperCase()}
+                      {(
+                        activeConversationInfo.otherUser?.full_name ||
+                        activeConversationInfo.otherUser?.email ||
+                        'U'
+                      )
+                        .charAt(0)
+                        .toUpperCase()}
                     </div>
                   )}
                 </div>
-                <div className="overflow-hidden">
+                <div className="min-w-0 flex-1 overflow-hidden">
                   <h2 className="truncate text-sm font-semibold">
-                    {activeConversationInfo.otherUser?.full_name || activeConversationInfo.otherUser?.email?.split('@')[0] || 'Unknown User'}
+                    {activeConversationInfo.otherUser?.full_name ||
+                      activeConversationInfo.otherUser?.email?.split('@')[0] ||
+                      'Unknown User'}
                   </h2>
                   <p className="text-muted-foreground truncate text-[10px]">
                     {activeConversationInfo.property?.title || 'General Inquiry'}
@@ -259,17 +386,28 @@ export default function InboxView({
               </div>
 
               {/* Chat Messages */}
-              <div className="flex-1 space-y-4 overflow-y-auto p-4 scroll-smooth">
+              <div className="flex-1 space-y-4 overflow-y-auto scroll-smooth p-4">
                 {activeMessages.map((msg) => {
                   const isMe = msg.sender_id === currentUser.id
                   return (
-                    <div key={msg.id} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
-                      <div className={`max-w-[85%] rounded-2xl px-3 py-1.5 text-sm ${isMe ? 'rounded-br-none bg-amber-500 text-white' : 'bg-muted rounded-bl-none'
-                        }`}>
+                    <div
+                      key={msg.id}
+                      className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}
+                    >
+                      <div
+                        className={`max-w-[85%] rounded-2xl px-3 py-1.5 text-sm ${
+                          isMe
+                            ? 'rounded-br-none bg-amber-500 text-white'
+                            : 'bg-muted rounded-bl-none'
+                        }`}
+                      >
                         {msg.content}
                       </div>
                       <span className="text-muted-foreground mx-1 mt-1 text-[9px]">
-                        {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        {new Date(msg.created_at).toLocaleTimeString([], {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
                       </span>
                     </div>
                   )
@@ -280,7 +418,7 @@ export default function InboxView({
               <div className="bg-background flex shrink-0 gap-2 border-t p-3">
                 <Textarea
                   placeholder="Message..."
-                  className="min-h-[40px] flex-1 resize-none bg-muted/30 border-none focus-visible:ring-0"
+                  className="bg-muted/30 min-h-[40px] flex-1 resize-none border-none focus-visible:ring-0"
                   value={replyText}
                   onChange={(e) => setReplyText(e.target.value)}
                   onKeyDown={(e) => {
@@ -295,16 +433,42 @@ export default function InboxView({
                   disabled={isSending || !replyText.trim()}
                   size="sm"
                   variant="ghost"
-                  className="mt-auto text-amber-600 hover:text-amber-700 hover:bg-transparent px-2"
+                  className="mt-auto px-2 text-amber-600 hover:bg-transparent hover:text-amber-700"
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m22 2-7 20-4-9-9-4Z" /><path d="M22 2 11 13" /></svg>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="m22 2-7 20-4-9-9-4Z" />
+                    <path d="M22 2 11 13" />
+                  </svg>
                 </Button>
               </div>
             </>
           ) : (
             <div className="text-muted-foreground flex flex-1 flex-col items-center justify-center p-8 text-center text-sm">
-              <div className="mb-4 rounded-full bg-muted p-4">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-muted-foreground/50"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
+              <div className="bg-muted mb-4 rounded-full p-4">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="text-muted-foreground/50"
+                >
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                </svg>
               </div>
               Select a conversation to start chatting
             </div>

@@ -1,9 +1,9 @@
 'use client'
 
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet'
+import { Circle, MapContainer, Marker, Popup, TileLayer, useMap, useMapEvents } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
-import { useEffect, useCallback, useRef, useMemo, useState } from 'react'
+import { useEffect, useCallback, useRef, useMemo } from 'react'
 
 const DefaultIcon = L.icon({
   iconUrl: '/marker-icon.png',
@@ -16,36 +16,59 @@ const DefaultIcon = L.icon({
 })
 L.Marker.prototype.options.icon = DefaultIcon
 
-// Custom component to handle user location
-function MapUserLocation({
-  userLocation,
-  setUserLocation
+function getViewportSnapshot(map: L.Map) {
+  const center = map.getCenter()
+  const bounds = map.getBounds()
+
+  return {
+    center: [center.lat, center.lng] as [number, number],
+    bounds: {
+      north: bounds.getNorth(),
+      south: bounds.getSouth(),
+      east: bounds.getEast(),
+      west: bounds.getWest(),
+    },
+  }
+}
+
+function SyncMapView({
+  center,
+  zoom = 15,
+  onMoveHandled,
 }: {
-  userLocation: [number, number] | null;
-  setUserLocation: (loc: [number, number]) => void
+  center: [number, number] | null
+  zoom?: number
+  onMoveHandled?: () => void
 }) {
   const map = useMap()
+  const previousCenter = useRef<string | null>(null)
 
   useEffect(() => {
-    // Only ask once, and if we don't already have it
-    if (userLocation || !navigator.geolocation) return
+    if (!center) return
 
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const { latitude, longitude } = position.coords
-        setUserLocation([latitude, longitude])
-        // Smoothly fly to the user's location
-        map.flyTo([latitude, longitude], 15, {
-          duration: 2,
-        })
-      },
-      (error) => {
-        console.warn("Geolocation denied or failed:", error)
-        // Silently fails and remains at the fallback center
-      },
-      { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
-    )
-  }, [map, userLocation, setUserLocation])
+    const [lat, lng] = center
+    if (!Number.isFinite(lat) || !Number.isFinite(lng) || lat === 0 || lng === 0) return
+
+    const centerKey = `${lat.toFixed(6)},${lng.toFixed(6)},${zoom}`
+    if (previousCenter.current === centerKey) return
+
+    previousCenter.current = centerKey
+
+    const timer = setTimeout(() => {
+      try {
+        map.flyTo([lat, lng], zoom, { animate: true, duration: 0.8 })
+      } catch {
+        try {
+          map.setView([lat, lng], zoom)
+        } catch {
+          /* ignore */
+        }
+      }
+      onMoveHandled?.()
+    }, 100)
+
+    return () => clearTimeout(timer)
+  }, [center, map, onMoveHandled, zoom])
 
   return null
 }
@@ -68,11 +91,29 @@ interface RealMapProps {
   onPropertySelect: (property: Property | null) => void
   initialLat?: number
   initialLng?: number
+  userLocation?: [number, number] | null
+  searchCenter?: [number, number] | null
+  radiusKm?: number
+  showRadius?: boolean
+  onViewportReady?: (viewport: {
+    center: [number, number]
+    bounds: { north: number; south: number; east: number; west: number }
+  }) => void
+  onViewportChange?: (viewport: {
+    center: [number, number]
+    bounds: { north: number; south: number; east: number; west: number }
+  }) => void
 }
 
 // Only flies to a property when the user explicitly selects one.
 // Does NOT sync external center state back → no feedback loop.
-function FlyToSelected({ selectedProperty }: { selectedProperty: Property | null }) {
+function FlyToSelected({
+  selectedProperty,
+  onMoveHandled,
+}: {
+  selectedProperty: Property | null
+  onMoveHandled?: () => void
+}) {
   const map = useMap()
   const prevId = useRef<string | null>(null)
 
@@ -101,10 +142,40 @@ function FlyToSelected({ selectedProperty }: { selectedProperty: Property | null
           /* ignore */
         }
       }
+      onMoveHandled?.()
     }, 150)
 
     return () => clearTimeout(timer)
-  }, [selectedProperty, map])
+  }, [selectedProperty, map, onMoveHandled])
+
+  return null
+}
+
+function ViewportListener({
+  onViewportReady,
+  onViewportChange,
+}: {
+  onViewportReady?: (viewport: {
+    center: [number, number]
+    bounds: { north: number; south: number; east: number; west: number }
+  }) => void
+  onViewportChange?: (viewport: {
+    center: [number, number]
+    bounds: { north: number; south: number; east: number; west: number }
+  }) => void
+}) {
+  const hasReportedReady = useRef(false)
+  const map = useMapEvents({
+    moveend: () => {
+      onViewportChange?.(getViewportSnapshot(map))
+    },
+  })
+
+  useEffect(() => {
+    if (hasReportedReady.current) return
+    hasReportedReady.current = true
+    onViewportReady?.(getViewportSnapshot(map))
+  }, [map, onViewportReady])
 
   return null
 }
@@ -158,9 +229,13 @@ export default function RealMap({
   onPropertySelect,
   initialLat,
   initialLng,
+  userLocation = null,
+  searchCenter = null,
+  radiusKm = 5,
+  showRadius = false,
+  onViewportReady,
+  onViewportChange,
 }: RealMapProps) {
-  const [userLocation, setUserLocation] = useState<[number, number] | null>(null)
-
   // Compute the initial center once — from the first property or fall back to Manila temporarily.
   const lat0 = Number(initialLat)
   const lng0 = Number(initialLng)
@@ -187,9 +262,23 @@ export default function RealMap({
           maxZoom={19}
         />
         <FlyToSelected selectedProperty={selectedProperty} />
-        <MapUserLocation userLocation={userLocation} setUserLocation={setUserLocation} />
+        <SyncMapView center={searchCenter || userLocation || initialCenter} zoom={15} />
+        <ViewportListener onViewportReady={onViewportReady} onViewportChange={onViewportChange} />
         <MapFixer />
         <MapInvalidator trigger={properties.length} />
+
+        {showRadius && searchCenter && (
+          <Circle
+            center={searchCenter}
+            radius={radiusKm * 1000}
+            pathOptions={{
+              color: '#f59e0b',
+              weight: 2,
+              fillColor: '#f59e0b',
+              fillOpacity: 0.12,
+            }}
+          />
+        )}
 
         {/* User Location Marker */}
         {userLocation && (
@@ -204,7 +293,7 @@ export default function RealMap({
               iconAnchor: [8, 8],
             })}
           >
-            <Popup className="rounded-lg overflow-hidden border-0 shadow-lg p-0">
+            <Popup className="overflow-hidden rounded-lg border-0 p-0 shadow-lg">
               <div className="p-2 text-sm font-semibold">Your Location</div>
             </Popup>
           </Marker>

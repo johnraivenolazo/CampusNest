@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
-import { Loader2, GraduationCap, Home } from 'lucide-react'
+import { Loader2, GraduationCap, Home, Eye, EyeOff } from 'lucide-react'
 
 interface AuthDialogProps {
   open: boolean
@@ -16,11 +16,58 @@ interface AuthDialogProps {
   defaultView?: 'login' | 'signup'
 }
 
+function PasswordField({
+  id,
+  label,
+  value,
+  onChange,
+  visible,
+  onToggleVisibility,
+  autoComplete,
+}: {
+  id: string
+  label: string
+  value: string
+  onChange: (value: string) => void
+  visible: boolean
+  onToggleVisibility: () => void
+  autoComplete: string
+}) {
+  return (
+    <div className="space-y-1.5">
+      <Label htmlFor={id}>{label}</Label>
+      <div className="relative">
+        <Input
+          id={id}
+          type={visible ? 'text' : 'password'}
+          required
+          value={value}
+          autoComplete={autoComplete}
+          spellCheck={false}
+          autoCapitalize="none"
+          onChange={(e) => onChange(e.target.value)}
+          className="password-input-no-native-reveal pr-12"
+        />
+        <button
+          type="button"
+          onClick={onToggleVisibility}
+          aria-label={visible ? `Hide ${label.toLowerCase()}` : `Show ${label.toLowerCase()}`}
+          className="text-muted-foreground hover:text-foreground absolute inset-y-0 right-0 flex w-11 items-center justify-center transition-colors"
+        >
+          {visible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+        </button>
+      </div>
+    </div>
+  )
+}
+
 export function AuthDialog({ open, onOpenChange, defaultView = 'login' }: AuthDialogProps) {
   const [view, setView] = useState<'login' | 'signup'>(defaultView)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [repeatPassword, setRepeatPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [showRepeatPassword, setShowRepeatPassword] = useState(false)
   const [userType, setUserType] = useState<'student' | 'landlord'>('student')
   const [fullName, setFullName] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -34,6 +81,8 @@ export function AuthDialog({ open, onOpenChange, defaultView = 'login' }: AuthDi
       setEmail('')
       setPassword('')
       setRepeatPassword('')
+      setShowPassword(false)
+      setShowRepeatPassword(false)
       setFullName('')
     }
   }, [open, defaultView])
@@ -84,10 +133,20 @@ export function AuthDialog({ open, onOpenChange, defaultView = 'login' }: AuthDi
   }
 
   const handleGoogleLogin = async () => {
+    if (typeof document !== 'undefined') {
+      if (view === 'signup') {
+        document.cookie = `oauth_signup_user_type=${userType}; Path=/; Max-Age=600; SameSite=Lax`
+      } else {
+        document.cookie = 'oauth_signup_user_type=; Path=/; Max-Age=0; SameSite=Lax'
+      }
+    }
+
     const supabase = createClient()
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback?next=/&auth_intent=${view}`,
+      },
     })
     if (error) setError(error.message)
   }
@@ -182,28 +241,26 @@ export function AuthDialog({ open, onOpenChange, defaultView = 'login' }: AuthDi
                 </div>
               )}
 
-              <div className="space-y-1.5">
-                <Label htmlFor="password">Password</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
-              </div>
+              <PasswordField
+                id="password"
+                label="Password"
+                value={password}
+                onChange={setPassword}
+                visible={showPassword}
+                onToggleVisibility={() => setShowPassword((prev) => !prev)}
+                autoComplete={view === 'login' ? 'current-password' : 'new-password'}
+              />
 
               {view === 'signup' && (
-                <div className="space-y-1.5">
-                  <Label htmlFor="repeat-password">Confirm Password</Label>
-                  <Input
-                    id="repeat-password"
-                    type="password"
-                    required
-                    value={repeatPassword}
-                    onChange={(e) => setRepeatPassword(e.target.value)}
-                  />
-                </div>
+                <PasswordField
+                  id="repeat-password"
+                  label="Confirm Password"
+                  value={repeatPassword}
+                  onChange={setRepeatPassword}
+                  visible={showRepeatPassword}
+                  onToggleVisibility={() => setShowRepeatPassword((prev) => !prev)}
+                  autoComplete="new-password"
+                />
               )}
 
               {error && (
@@ -263,7 +320,9 @@ export function AuthDialog({ open, onOpenChange, defaultView = 'login' }: AuthDi
                   d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
                 />
               </svg>
-              Continue with Google
+              {view === 'signup'
+                ? `Continue with Google as ${userType === 'student' ? 'Student' : 'Landlord'}`
+                : 'Continue with Google'}
             </Button>
 
             <div className="space-y-2 pt-2 text-center">
